@@ -23,7 +23,7 @@ chmod +x "$DEST/ravenhollow.sh"
 
 say "2/4  Browser"
 BROWSER=""
-for id in com.google.Chrome org.chromium.Chromium com.brave.Browser com.microsoft.Edge; do
+for id in com.google.Chrome org.chromium.Chromium; do
   if flatpak info "$id" >/dev/null 2>&1; then BROWSER="$id"; break; fi
 done
 if [ -z "$BROWSER" ]; then
