@@ -33,6 +33,7 @@ async function boot() {
   initFX();
   initUI();
   initTheme();
+  initVigil();
   initMusic();
   prog(1, 'Ready');
   applySettings();
@@ -841,6 +842,8 @@ function openOptions() {
     { slider: true, label: 'Brightness', get: () => (S.brightness - 0.6) / 1.0, set: v => { S.brightness = 0.6 + v * 1.0; applySettings(); } },
     { toggle: () => { S.grain = !S.grain; applySettings(); }, label: 'Film grain', get: () => S.grain ? 'On' : 'Off' },
     { toggle: () => { S.showDamage = !S.showDamage; applySettings(); }, label: 'Damage numbers', get: () => S.showDamage ? 'On' : 'Off' },
+    { toggle: () => { S.lantern = S.lantern === false; applySettings(); applyVigilSettings(); }, label: 'Lantern of the Penitent', get: () => S.lantern !== false ? 'On' : 'Off' },
+    { toggle: () => { S.rhythm = S.rhythm === false; applySettings(); applyVigilSettings(); }, label: 'Combat rhythm', get: () => S.rhythm !== false ? 'On' : 'Off' },
     { toggle: () => { const fs = document.fullscreenElement; if (fs) document.exitFullscreen(); else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => { }); }, label: 'Fullscreen', get: () => document.fullscreenElement ? 'On' : 'Off' },
     { label: 'Back', fn: () => popPanel() },
   ], { footer: `${glyph('a')} change &nbsp; ${glyph('b')} back` });
@@ -848,7 +851,9 @@ function openOptions() {
 function openControls() {
   const rows = [
     ['Move', 'Left stick', 'WASD / click'], ['Attack · interact · pick up', 'A', 'Space / left click'], ['Skills', 'X · Y · B · RT', '1 · 2 · 3 · 4 / right click'],
-    ['Healing potion', 'LB', 'Q'], ['Mana potion', 'RB', 'E'], ['Town Portal', 'LT', 'T'], ['Aim (optional)', 'Right stick', 'Mouse'],
+    ['Healing potion', 'LB', 'Q'], [G.settings.lantern !== false ? 'Lamp oil' : 'Mana potion', 'RB', 'F'],
+    ...(G.settings.rhythm !== false ? [['Slide (dodge)', 'LT', 'Shift'], ['Town Portal', 'D-pad right', 'T']] : [['Town Portal', 'LT · D-pad right', 'T']]),
+    ...(G.settings.lantern !== false ? [['Shutter the lantern', 'Left stick click', 'L']] : []), ['Aim (optional)', 'Right stick', 'Mouse'],
     ['Inventory & character', 'View', 'I / C'], ['Skills panel', 'D-pad left', 'K'], ['Map', 'D-pad up', 'Tab'], ['Item labels', 'D-pad down', 'Alt (hold)'], ['Menu', 'Menu', 'Esc'],
   ];
   const html = `<table style="width:100%;font-size:15px;border-collapse:collapse">${rows.map(r => `<tr><td style="padding:3px 6px;color:var(--gold)">${r[0]}</td><td style="padding:3px 6px">${r[1]}</td><td style="padding:3px 6px;color:var(--muted)">${r[2]}</td></tr>`).join('')}</table>`;

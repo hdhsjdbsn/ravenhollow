@@ -191,7 +191,7 @@ function updatePrompt() {
   else if (t.kind === 'stairsUp') label = WORLD.depth === 1 ? 'Return to Ravenhollow' : `Ascend to level ${WORLD.depth - 1}`;
   else if (t.kind === 'portal') label = WORLD.depth === 0 ? `Enter portal (level ${WORLD.townPortal ? WORLD.townPortal.depth : '?'})` : 'Enter portal to Ravenhollow';
   else if (t.kind === 'waystone') label = 'Use the Waystone';
-  else if (t.type) label = { barrel: 'Break', crate: 'Break', chest: 'Open', sarcophagus: 'Open', coffin: 'Open', shrine: 'Touch', lectern: 'Read' }[t.type] + ' ' + (t.name || '');
+  else if (t.type) label = { barrel: 'Break', crate: 'Break', chest: 'Open', sarcophagus: 'Open', coffin: 'Open', shrine: 'Touch', lectern: 'Read', votive: 'Kindle' }[t.type] + ' ' + (t.name || '');
   const key = label + IN.lastDevice;
   if (UI._pk !== key) { UI._pk = key; UI.prompt.innerHTML = `${glyph('a')} ${esc(label)}`; }
   UI.prompt.style.opacity = 1;
