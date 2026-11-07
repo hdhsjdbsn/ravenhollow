@@ -32,6 +32,7 @@ async function boot() {
   await loadSetsSafe(first, f => prog(0.05 + f * 0.9, f < 0.5 ? 'Waking the village…' : 'Lighting the lanterns…'));
   initFX();
   initUI();
+  initTheme();
   initMusic();
   prog(1, 'Ready');
   applySettings();

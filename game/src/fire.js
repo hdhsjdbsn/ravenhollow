@@ -81,7 +81,7 @@ FIRE.draw = function (S) {
     if (f.t < 0) continue;
     const k = f.t / f.dur, life = k < 0.15 ? k / 0.15 : 1 - Math.pow((k - 0.15) / 0.85, 1.6);   // flare up fast, die slowly
     S.flames.push({ x: f.x, y: f.y, z: f.z, w: f.w * (0.7 + 0.3 * life + f.grow * k), h: f.h * (0.35 + 0.65 * life), g: f.g * (0.4 + 0.6 * life), glow: f.glow * life, seed: f.seed,
-      style: [f.tongues, f.lean, f.turb, 1], style2: [0.1, 1.3, 1, 1], fl: 1.4, tintA: f.T.core, tintB: f.T.outer, speed: f.speed });
+      style: [f.tongues, f.lean, f.turb, 1], style2: [0.1, 1.3, 1, 1], fl: 1.4, tintA: f.tintA || f.T.core, tintB: f.tintB || f.T.outer, speed: f.speed });
   }
   for (const g of FIRE.glows) { const k = g.t / g.dur, a = g.up ? Math.sin(Math.min(1, k) * Math.PI / 2) : 1 - k; S.glows.push({ x: g.x, y: g.y, z: g.z, w: g.w * (g.up ? 0.5 + 0.5 * k : 1), h: g.h * (g.up ? 0.5 + 0.5 * k : 1), g: g.g * a, c: g.c }); }
   // ragged rings of fire on the floor: bright leading edge, a scorched soft tail
@@ -111,27 +111,39 @@ function emberVis(p, dt, dead) {
   const wob = Math.sin(p.t * T.wf + T.ph) * T.wob, wx = p.x + dz * wob, wz = p.z - dx * wob, wy = p.y + Math.sin(p.t * T.wf * 0.7) * T.wob * 0.5;
   const hist = p.hist || (p.hist = []); hist.unshift([wx, wy, wz]); if (hist.length > T.len) hist.pop();
   if (dead) return;
+  // billows: short-lived, swelling tongues left behind in the air, so the ball drags a thick, tumbling mane of fire
+  p._bill = (p._bill || 0) + dt * T.billow;
+  while (p._bill >= 1) {
+    p._bill -= 1;
+    const back = rr(0.05, 0.35), side = rr(-0.12, 0.12);
+    FIRE.flame(wx - dx * back + dz * side, wy - 0.3 * T.ball + rr(-0.08, 0.1), wz - dz * back - dx * side, { dur: rr(0.16, 0.34), w: rr(24, 36) * T.ball, h: rr(28, 46) * T.ball, tongues: 2 + (Math.random() < 0.5 ? 1 : 0),
+      turb: rr(3.8, 4.8), lean: rr(0.3, 0.8), T, glow: rr(0.18, 0.3), g: rr(1.0, 1.15), grow: rr(0.4, 0.9), tintA: T.core.map((v, i) => v * 0.75 + T.outer[i] * 0.25), tintB: T.outer.map(v => v * 0.8), rise: rr(0.5, 1.2), vx: -dx * rr(0.3, 1.2), vz: -dz * rr(0.3, 1.2), speed: rr(2.6, 3.6) });
+  }
   if (Math.random() < dt * T.sr) sparks(wx, wy, wz, 1 + (Math.random() * 2 | 0), T, { dir: Math.atan2(-dx, -dz), spread: 1.1, speed: 2.2, up: 1.4, g: 4, life1: 0.6 });
   if (Math.random() < dt * 2) motes(wx, wy, wz, 1, T, 0.15);
-  if (Math.random() < dt * T.smoke) soot(wx, wy, wz, 1, { size: 0.45, a: 0.22, r: 0.1, lifeK: 0.6 });
+  if (Math.random() < dt * T.smoke) soot(wx - dx * 0.4, wy + 0.1, wz - dz * 0.4, 1, { size: rr(0.5, 0.8), a: 0.3, r: 0.2, lifeK: 0.8 });
   if (p.light) { p.light.y = wy; p.light.intensity = T.li * (0.7 + 0.3 * GFX.flick(G.time * 2.3, T.seed)); }
 }
 function drawBolt(S, p) {
   const T = p.opts.T, hist = p.hist; if (!hist || !hist.length) return;
-  const q0 = hist[0];
-  S.glows.push({ x: q0[0], y: q0[1], z: q0[2], w: 70 * T.glow, h: 62 * T.glow, g: 0.55 + 0.15 * Math.sin(p.t * 31), c: T.core });
-  S.flames.push({ x: q0[0], y: q0[1] - 0.22, z: q0[2], w: T.w * (0.9 + 0.2 * Math.sin(p.t * 37)), h: T.h, g: 1.15, glow: T.glow * 0.8, seed: T.seed, style: [T.tongues, T.lean, 3.4, 1], style2: [0, 1.5, 1, 1], fl: 1.6, tintA: T.core, tintB: T.outer, speed: 2.6 });
+  const q0 = hist[0], t = p.t, R = T.ball;
+  // a big, breathing glow and a white-hot heart
+  S.glows.push({ x: q0[0], y: q0[1], z: q0[2], w: 120 * T.glow * R, h: 108 * T.glow * R, g: 0.38 + 0.12 * Math.sin(t * 29), c: T.outer.map(v => v * 1.6) });
+  S.glows.push({ x: q0[0], y: q0[1], z: q0[2], w: 40 * R, h: 36 * R, g: 0.7, c: [1.0, 0.7, 0.35] });
+  // the ball: a knot of tongues around the head, each churning on its own beat, all streaming back from the flight
+  for (let i = 0; i < T.knot.length; i++) {
+    const k = T.knot[i], ph = t * k.f + k.ph, br = 0.85 + 0.25 * Math.sin(ph) + 0.12 * Math.sin(ph * 2.7);
+    S.flames.push({ x: q0[0] + k.ox * Math.cos(ph * 0.5), y: q0[1] - 0.26 * R + k.oy, z: q0[2] + k.oz * Math.sin(ph * 0.4), w: k.w * R * br, h: k.h * R * (0.8 + 0.3 * Math.sin(ph * 1.3)),
+      g: i === 0 ? 1.1 : 0.95, glow: T.glow * (i === 0 ? 0.35 : 0.15), seed: k.seed, style: [k.tongues, T.lean + k.lean, 4.2, 1], style2: [0, 1.6, 1, 1], fl: 1.8, tintA: i === 0 ? T.core : T.core.map((v, j) => v * 0.6 + T.outer[j] * 0.4), tintB: T.outer, speed: 3.2 });
+  }
   if (hist.length > 2) {
+    // a ragged heat-ribbon under the billowing tail (the billows themselves are FIRE.flame puffs dropped in flight)
     const up = [], dn = [], n = hist.length;
     for (let i = 0; i < n; i++) {
-      const q = hist[i], u = i / (n - 1), w = T.tw * (1 - u) * (0.7 + 0.3 * Math.sin(p.t * 25 + i * 1.7)), a = 0.95 * (1 - u) * (1 - u);
-      up.push([q[0], q[1] + w, q[2], q[0], q[1], q[2], a]); dn.push([q[0], q[1] - w * 0.7, q[2], q[0], q[1], q[2], a]);
+      const q = hist[i], u = i / (n - 1), w = T.tw * R * (1 - u * 0.8) * (0.6 + 0.4 * Math.sin(t * 25 + i * 1.7)), a = 0.55 * (1 - u) * (1 - u);
+      up.push([q[0], q[1] + w, q[2], q[0], q[1], q[2], a]); dn.push([q[0], q[1] - w * 0.8, q[2], q[0], q[1], q[2], a]);
     }
     S.trails.push({ pts: up, col: T.trail }); S.trails.push({ pts: dn, col: T.trail });
-    const L = [], Rr = [], sp = Math.hypot(p.vx, p.vz) || 1, nx = p.vz / sp, nz = -p.vx / sp;
-    for (let i = 0; i < n; i++) { const q = hist[i], u = i / (n - 1), w = T.tw * 0.9 * (1 - u) * (0.6 + 0.4 * Math.sin(p.t * 19 + i * 2.3)), a = 0.7 * (1 - u) * (1 - u);
-      L.push([q[0] + nx * w, q[1], q[2] + nz * w, q[0], q[1], q[2], a]); Rr.push([q[0] - nx * w, q[1], q[2] - nz * w, q[0], q[1], q[2], a]); }
-    S.trails.push({ pts: L, col: T.trail }); S.trails.push({ pts: Rr, col: T.trail });
   }
 }
 function emberImpact(p, t) {
@@ -139,12 +151,14 @@ function emberImpact(p, t) {
   if (t) {
     // splash through the foe: a spray of sparks, a tongue clinging to it, a puff of soot
     sparks(x, y, z, (4 + Math.random() * 5) | 0, T, { dir, spread: rr(0.6, 1.1), speed: rr(2.5, 4), up: 1.5, life1: 0.6 });
-    FIRE.flame(t.x, rr(0.35, 0.6), t.z, { follow: t, ox: rr(-0.1, 0.1), oz: rr(-0.1, 0.1), dur: rr(0.35, 0.6), w: rr(16, 24), h: rr(34, 52), tongues: 2, T, glow: 0.8 });
+    FIRE.flame(t.x, rr(0.35, 0.6), t.z, { follow: t, ox: rr(-0.1, 0.1), oz: rr(-0.1, 0.1), dur: rr(0.4, 0.65), w: rr(28, 38), h: rr(52, 72), tongues: 3, turb: 4.2, T, glow: 0.9 });
+    for (let i = 0; i < 3; i++) FIRE.flame(x + rr(-0.3, 0.3), y - 0.3 + rr(-0.1, 0.2), z + rr(-0.3, 0.3), { dur: rr(0.2, 0.38), w: rr(24, 36), h: rr(30, 48), tongues: 2, turb: 4.4, T, glow: 0.5, grow: 0.9, rise: rr(0.6, 1.4), vx: Math.sin(dir) * rr(0.5, 1.5), vz: Math.cos(dir) * rr(0.5, 1.5) });
   } else {
     // against stone: sparks thrown back, a puddle of fire that gutters out, a scorch mark
     sparks(x, y, z, (5 + Math.random() * 5) | 0, T, { dir: dir + Math.PI, spread: 1.3, speed: rr(2.5, 4), up: 2.2, life1: 0.9, g: 6 });
     const gx = x - Math.sin(dir) * 0.2, gz = z - Math.cos(dir) * 0.2;
-    FIRE.flame(gx, 0.02, gz, { dur: rr(0.6, 1.1), w: rr(14, 22), h: rr(22, 34), tongues: 1 + (Math.random() < 0.5 ? 1 : 0), T, glow: 0.6, sp: 0.8 });
+    FIRE.flame(gx, 0.02, gz, { dur: rr(0.7, 1.2), w: rr(26, 38), h: rr(40, 60), tongues: 2 + (Math.random() < 0.5 ? 1 : 0), turb: 4.2, T, glow: 0.7, sp: 0.6 });
+    for (let i = 0; i < 4; i++) { const a = dir + Math.PI + rr(-1.2, 1.2), d = rr(0.1, 0.5); FIRE.flame(gx + Math.sin(a) * d, rr(0.1, 0.5), gz + Math.cos(a) * d, { dur: rr(0.22, 0.4), w: rr(26, 40), h: rr(30, 50), tongues: 2, turb: 4.4, T, glow: 0.45, grow: 1.0, rise: rr(0.8, 1.6), vx: Math.sin(a) * rr(0.6, 1.6), vz: Math.cos(a) * rr(0.6, 1.6) }); }
     scorch(gx, gz, rr(0.15, 0.28));
   }
   motes(x, y, z, 2, T, 0.3);
@@ -162,8 +176,11 @@ function emberLaunch(H, a, T) {
 
 // a bolt's temper: hue, size, how it wavers, how much it sheds
 function emberTemper() {
-  return Object.assign(temper(), { w: rr(22, 30), h: rr(30, 44), tongues: Math.random() < 0.35 ? 2 : 1, lean: rr(0.2, 0.6), glow: rr(0.7, 1.0), seed: Math.random() * 100,
-    wob: rr(0.02, 0.07), wf: rr(14, 26), ph: Math.random() * TAU, len: (7 + Math.random() * 5) | 0, tw: rr(0.13, 0.2), sr: rr(3, 7), smoke: rr(5, 11), li: rr(4.5, 7) });
+  const ball = rr(1.35, 1.7), nk = 3 + (Math.random() * 3 | 0);
+  const knot = [...Array(nk)].map((_, i) => ({ ox: i ? rr(-0.13, 0.13) : 0, oy: i ? rr(-0.1, 0.12) : 0, oz: i ? rr(-0.13, 0.13) : 0, w: i ? rr(26, 38) : rr(44, 56), h: i ? rr(34, 52) : rr(54, 74),
+    tongues: i ? 2 : 3, lean: rr(0, 0.35), f: rr(9, 17), ph: Math.random() * TAU, seed: Math.random() * 100 }));
+  return Object.assign(temper(), { ball, knot, billow: rr(32, 46), lean: rr(0.35, 0.7), glow: rr(0.8, 1.05), seed: Math.random() * 100,
+    wob: rr(0.02, 0.06), wf: rr(14, 26), ph: Math.random() * TAU, len: (8 + Math.random() * 5) | 0, tw: rr(0.22, 0.32), sr: rr(2, 4), smoke: rr(10, 16), li: rr(6, 8.5) });
 }
 // Lantern Flare's look: the lantern gathers sparks, then a pillar of fire, two ragged rings and tongues bursting where they pass
 FIRE.flareGather = function (H, T) {

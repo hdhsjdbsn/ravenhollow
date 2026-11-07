@@ -33,9 +33,16 @@ function moveWithCollision(a, dx, dz) {
   a._moved = (a._moved || 0) + Math.hypot(a.x - x0, a.z - z0);
 }
 // how fast an actor really moved this frame (walls stop the feet, so they also stop the walk cycle)
+// Measured as the smoothed velocity *vector*: shoving back and forth in a crowd or against a corner cancels out,
+// so a foe that is not actually getting anywhere stands (idle) instead of walking on the spot.
 function realSpeed(a, dt) {
-  const v = dt > 0 ? (a._moved || 0) / dt : 0; a._moved = 0;
-  a._vs = (a._vs ?? v) + (v - (a._vs ?? v)) * Math.min(1, dt * 14);
+  a._moved = 0;
+  if (a._px === undefined || dt <= 0) { a._px = a.x; a._pz = a.z; a._vx = a._vz = 0; a._vs = 0; return 0; }
+  if (Math.hypot(a.x - a._px, a.z - a._pz) > 1.5) { a._px = a.x; a._pz = a.z; a._vx = a._vz = 0; }   // placed / teleported
+  const vx = (a.x - a._px) / dt, vz = (a.z - a._pz) / dt; a._px = a.x; a._pz = a.z;
+  const k = Math.min(1, dt * 7);
+  a._vx += (vx - a._vx) * k; a._vz += (vz - a._vz) * k;
+  a._vs = Math.hypot(a._vx, a._vz);
   return a.moveSpeedNow > 0 ? Math.min(a.moveSpeedNow, a._vs) : 0;
 }
 function faceAngle(dx, dz) { return Math.atan2(dx, dz); }

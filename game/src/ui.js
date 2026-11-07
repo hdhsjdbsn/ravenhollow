@@ -269,7 +269,7 @@ class Panel {
   }
   close() { this.el.remove(); hideTip(); }
 }
-function pushPanel(p) { UI.stack.push(p); if (p.items.length) p.setFocus(Math.min(p.focus, p.items.length - 1)); SFX.play('menuOpen'); return p; }
+function pushPanel(p) { UI.stack.push(p); if (p.items.length) p.setFocus(Math.min(p.focus, p.items.length - 1)); if (!UI._quietOpen) SFX.play('menuOpen'); return p; }
 function popPanel() { const p = UI.stack.pop(); if (p) { p.close(); p.opts.onClose && p.opts.onClose(); } hideTip(); const top = UI.stack[UI.stack.length - 1]; if (top && top.items[top.focus]) showTip(top.items[top.focus]); }
 function closeAllPanels() { while (UI.stack.length) popPanel(); }
 function topPanel() { return UI.stack[UI.stack.length - 1]; }
@@ -335,6 +335,35 @@ function itemCell(it, cls = 'cell') {
 }
 function equippedFor(it) { const H = WORLD.hero; const s = slotsFor(it); if (!s.length) return null; return H.equip[s[0]] || (s[1] && H.equip[s[1]]) || null; }
 
+// ---------------- menu tabs: LB / RB (Q / E) walk between Hero, Skills and Map ----------------
+const MENU_TABS = [['hero', 'Hero'], ['skills', 'Skills'], ['map', 'Map']];
+function openMenuTab(kind) { if (kind === 'hero') openHeroScreen(); else if (kind === 'skills') openSkills(); else openMapPanel(); }
+function switchMenuTab(cur, dir) {
+  const i = MENU_TABS.findIndex(t => t[0] === cur), next = MENU_TABS[(i + dir + MENU_TABS.length) % MENU_TABS.length][0];
+  while (UI.stack.length && ['hero', 'skills', 'map'].includes(topPanel().kind)) { const q = UI.stack.pop(); q.close(); q.opts.onClose && q.opts.onClose(); }
+  hideTip(); UI._quietOpen = true; openMenuTab(next); UI._quietOpen = false; SFX.play('menuMove');
+}
+function tabStrip(p, kind) {
+  p.kind = kind; p.opts.tabs = d => switchMenuTab(kind, d);
+  const t = $('div', 'ptabs', p.el);
+  $('span', 'ptab-g', t, glyph('lb'));
+  for (const [k, label] of MENU_TABS) {
+    const e = $('span', 'ptab' + (k === kind ? ' on' : ''), t, label);
+    if (k !== kind) e.onclick = ev => { ev.stopPropagation(); SFX.play('click'); switchMenuTab(kind, MENU_TABS.findIndex(x => x[0] === k) - MENU_TABS.findIndex(x => x[0] === kind)); };
+  }
+  $('span', 'ptab-g', t, glyph('rb'));
+  return t;
+}
+function openMapPanel() {
+  const prev = UI.mapMode;
+  const p = new Panel('mappanel', { viewCloses: true, onClose: () => { UI.mapMode = prev === 1 ? 0 : prev; } });
+  UI.mapMode = 1;
+  tabStrip(p, 'map');
+  $('div', 'mapkey', p.el, `<span><i style="background:#fff"></i>You</span><span><i style="background:#f0d060"></i>Villagers</span><span><i style="background:#ff4030"></i>Way down</span><span><i style="background:#40ff60"></i>Way up</span><span><i style="background:#6080ff"></i>Portal</span>`);
+  $('div', 'phelp', p.el, `${glyph('lb')} ${glyph('rb')} Switch &nbsp; ${glyph('b')} Close`);
+  pushPanel(p);
+}
+
 // ---------------- HERO SCREEN (inventory + character) ----------------
 function openHeroScreen(focusInv) {
   const H = WORLD.hero;
@@ -344,6 +373,7 @@ function openHeroScreen(focusInv) {
   const build = () => {
     const keepFocus = p.focus;
     p.items = []; p.el.innerHTML = '';
+    tabStrip(p, 'hero');
     const charCol = $('div', 'charcol', p.el), invCol = $('div', 'invcol', p.el);
     // --- character sheet ---
     $('div', 'ptitle', charCol, `${esc(H.name)}`);
@@ -400,7 +430,7 @@ function openHeroScreen(focusInv) {
       });
     });
     $('div', 'goldline', invCol, `<span class="coin"></span> ${fmtNum(H.gold)} gold`);
-    $('div', 'phelp', p.el, `${glyph('b')} Close`);
+    $('div', 'phelp', p.el, `${glyph('lb')} ${glyph('rb')} Switch &nbsp; ${glyph('b')} Close`);
     p.setFocus(clamp(keepFocus, 0, p.items.length - 1));
   };
   p.rebuild = build;
@@ -418,6 +448,7 @@ function openSkills() {
   let assign = -1;
   const build = () => {
     const keepFocus = p.focus; p.items = []; p.el.innerHTML = '';
+    tabStrip(p, 'skills');
     $('div', 'ptitle', p.el, 'Skills');
     $('div', 'psub', p.el, H.skillPts ? `${H.skillPts} skill point${H.skillPts > 1 ? 's' : ''} available` : 'Earn skill points by gaining levels, or read tomes.');
     const slotsRow = $('div', 'aslots', p.el);
@@ -442,7 +473,7 @@ function openSkills() {
         tip: null,
       });
     }
-    $('div', 'phelp', p.el, `${glyph('b')} Back`);
+    $('div', 'phelp', p.el, `${glyph('lb')} ${glyph('rb')} Switch &nbsp; ${glyph('b')} Back`);
     p.setFocus(clamp(keepFocus, 0, p.items.length - 1));
   };
   build(); p.focus = 4; pushPanel(p); p.setFocus(4);
@@ -451,7 +482,7 @@ function openSkills() {
 // ---------------- DIALOG ----------------
 function openDialog(title, text, options, opts = {}) {
   const p = new Panel('dialog', { onClose: () => { if (opts.voice) stopVoice(); if (opts.onClose) opts.onClose(); } });
-  if (opts.voice) playVoice(opts.voice, { verb: opts.verb ?? 0.1 });
+  if (opts.voice) playVoice(opts.voice, { verb: opts.verb ?? 0.1, vol: opts.vol ?? 1.35, duck: 0.3, duckAmb: 0.45 });   // conversations: louder, music and ambience step back
   $('div', 'ptitle', p.el, esc(title));
   if (opts.subtitle) $('div', 'psub', p.el, esc(opts.subtitle));
   $('div', 'dtext', p.el, text);

@@ -32,6 +32,11 @@ function initAudio() {
     const lim = ctx.createDynamicsCompressor(); lim.threshold.value = -2.5; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.001; lim.release.value = 0.12;
     Audio2.master.connect(hp); hp.connect(warm); warm.connect(air); air.connect(comp); comp.connect(lim); lim.connect(ctx.destination);
     for (const k of ['music', 'sfx', 'amb', 'voice']) { Audio2[k] = ctx.createGain(); Audio2[k].connect(Audio2.master); }
+    // speech sits on top of the mix: its own leveller with make-up gain, and ambience ducks under it
+    const vc = ctx.createDynamicsCompressor(); vc.threshold.value = -22; vc.knee.value = 8; vc.ratio.value = 3.5; vc.attack.value = 0.004; vc.release.value = 0.18;
+    const vmk = ctx.createGain(); vmk.gain.value = 1.45;
+    Audio2.voice.disconnect(); Audio2.voice.connect(vc); vc.connect(vmk); vmk.connect(Audio2.master);
+    Audio2.ambDuck = ctx.createGain(); Audio2.amb.disconnect(); Audio2.amb.connect(Audio2.ambDuck); Audio2.ambDuck.connect(Audio2.master);
     Audio2.musicDuck = ctx.createGain(); Audio2.musicDuck.connect(Audio2.music);
     // zone reverb (sfx / ambience / voice)
     Audio2.verb = ctx.createConvolver();
@@ -166,10 +171,11 @@ async function playVoice(id, opts = {}) {
   VOICE.cur = { src, g }; VOICE.curId = id;
   // duck the music under speech
   const d = Audio2.musicDuck.gain; d.cancelScheduledValues(t); d.setValueAtTime(d.value, t); d.linearRampToValueAtTime(opts.duck ?? 0.42, t + 0.3);
+  if (opts.duckAmb && Audio2.ambDuck) { const a = Audio2.ambDuck.gain; a.cancelScheduledValues(t); a.setValueAtTime(a.value, t); a.linearRampToValueAtTime(opts.duckAmb, t + 0.3); }
   src.onended = () => { if (VOICE.cur && VOICE.cur.src === src) { VOICE.cur = null; VOICE.curId = null; unduck(); } };
   return buf.duration;
 }
-function unduck() { const ctx = Audio2.ctx, t = ctx.currentTime, d = Audio2.musicDuck.gain; d.cancelScheduledValues(t); d.setValueAtTime(d.value, t); d.linearRampToValueAtTime(1, t + 1.2); }
+function unduck() { const ctx = Audio2.ctx, t = ctx.currentTime; for (const n of [Audio2.musicDuck, Audio2.ambDuck]) { if (!n) continue; const d = n.gain; d.cancelScheduledValues(t); d.setValueAtTime(d.value, t); d.linearRampToValueAtTime(1, t + 1.2); } }
 function stopVoice(quick) {
   if (!VOICE.cur) return;
   const { src, g } = VOICE.cur; VOICE.cur = null; VOICE.curId = null;
