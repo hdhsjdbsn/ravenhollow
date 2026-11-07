@@ -1,0 +1,1 @@
+window.SKILL_ICONS={"bash": [0, 0, 96, 96], "firebolt": [96, 0, 96, 96], "cleave": [192, 0, 96, 96], "warcry": [288, 0, 96, 96], "fireball": [384, 0, 96, 96], "whirlwind": [480, 0, 96, 96], "firewall": [576, 0, 96, 96], "meteor": [672, 0, 96, 96]};
