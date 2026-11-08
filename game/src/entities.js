@@ -277,7 +277,7 @@ class Hero extends Actor {
       const i = this.inv.findIndex(o => o && o.base === b);
       if (i >= 0) { this.useItem(i); this.potCD = 0.4; return; }
     }
-    UI.msg(kind === 'heal' ? 'No healing potions.' : 'No mana potions.', '#c06040'); SFX.play('error');
+    UI.msg(kind === 'heal' ? 'No healing potions.' : G.settings.lantern !== false ? 'No lamp oil.' : 'No mana potions.', '#c06040'); SFX.play('error');
   }
   addBuff(id, dur, mods, fx) {
     const b = this.buffs.find(b => b.id === id);

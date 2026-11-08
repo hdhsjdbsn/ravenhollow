@@ -62,15 +62,22 @@ function applyVigilSettings() {
     if (gain > 0) this.mana = m0 + gain * (m0 / this.maxMana < 0.3 ? 0.5 : 0);
     if (!VIG.shut && this.alive) this.mana = Math.max(0, this.mana - this.maxMana * 0.0016 * dt);
   };
+  // with the lantern system on, the dungeon's own lights are weaker and the air darker: the lantern carries you
+  const _al = applyLook;
+  applyLook = function (name) {
+    _al(name);
+    if (!vLantern() || name === 'town') return;
+    const S = GFX.S; S.amb = S.amb.map(v => v * 0.3); S.lift = S.lift.map(v => v * 0.25); S.expo *= 0.92;
+  };
   const _ul = updateLantern;
   updateLantern = function (H) {
     if (!vLantern() || WORLD.depth === 0) { _ul(H); return; }
     const f = clamp(H.mana / Math.max(1, H.maxMana), 0, 1);
-    const k = VIG.shut ? 0.32 : 0.4 + 0.6 * Math.sqrt(f);
+    const k = VIG.shut ? 0.2 : 0.26 + 0.74 * Math.pow(f, 0.7);
     const lm = H.lightMul; H.lightMul = (lm || 1) * k;
     _ul(H);
     H.lightMul = lm;
-    if (Game.lantern) Game.lantern.intensity *= VIG.shut ? 0.45 : 0.55 + 0.45 * k;
+    if (Game.lantern) Game.lantern.intensity *= VIG.shut ? 0.35 : 0.4 + 0.6 * k;
     const fl = FX.extraFlames && FX.extraFlames[0];
     if (fl) { fl.w *= VIG.shut ? 0.4 : 0.5 + 0.6 * k; fl.h *= VIG.shut ? 0.4 : 0.5 + 0.6 * k; fl.glow *= VIG.shut ? 0.2 : k; }
   };
@@ -88,6 +95,10 @@ function applyVigilSettings() {
 // fire flies home: small embers rise from the dead and stream into the lantern
 function vWisps(x, z, n, amount) {
   for (let i = 0; i < n; i++) VIG.wisps.push({ x: x + vRand(-0.3, 0.3), y: vRand(0.5, 1.2), z: z + vRand(-0.3, 0.3), t: -i * 0.06, dur: vRand(0.5, 0.8), amt: amount / n, sx: 0, sy: 0, sz: 0, wob: Math.random() * 6 });
+}
+function vLevelLight(s, depth) {
+  if (!vLantern() || !depth) return s;
+  return Object.assign({}, s, { intensity: s.intensity * 0.36, radius: s.radius * 0.62 });
 }
 function vHarvest(m, src) {
   if (!vLantern() || WORLD.depth === 0) return;
@@ -420,6 +431,43 @@ function vExecuteFx(t, kill) {
     }
   };
 }
+// ------------------------------------------------------------------ difficulty (Options): Pilgrim = the old balance
+const DIFF = {
+  pilgrim:  { name: 'Pilgrim',  dmg: [1, 1], hp: 1, tohit: 0, cd: 1, extra: 0 },
+  penitent: { name: 'Penitent', dmg: [1.6, 1.35], hp: 1.2, tohit: 10, cd: 1.2, extra: 0.25 },
+  martyr:   { name: 'Martyr',   dmg: [2.2, 1.8], hp: 1.45, tohit: 18, cd: 1.35, extra: 0.45 },
+};
+const vDiff = () => DIFF[G.settings.difficulty] || DIFF.penitent;
+{
+  const _ms = monsterStats;
+  monsterStats = function (id, depth) {
+    const s = _ms(id, depth), D = vDiff();
+    const k = clamp((depth - 6) / 6, 0, 1), dm = D.dmg[0] + (D.dmg[1] - D.dmg[0]) * k;   // hardest early, eases toward depth 12
+    s.dmg = [Math.max(1, Math.round(s.dmg[0] * dm)), Math.max(1, Math.round(s.dmg[1] * dm))];
+    s.hp = Math.round(s.hp * D.hp); s.tohit += D.tohit;
+    return s;
+  };
+  const _mu = Monster.prototype.update;
+  Monster.prototype.update = function (dt) {
+    _mu.call(this, dt);
+    const r = vDiff().cd; if (r !== 1 && this.cd > 0 && this.aggro) this.cd -= dt * (r - 1);   // they recover from a swing sooner
+  };
+}
+// bigger packs: a share of the level's foes brings a companion of its kind (seeded, so a level is the same each time)
+function vExtraSpawns(L, depth, R) {
+  const D = vDiff(); if (!D.extra) return;
+  const base = WORLD.monsters.slice();
+  for (const m of base) {
+    if (m.T.boss || m.champion || m.minion || R() > D.extra) continue;
+    for (let t = 0; t < 6; t++) {
+      const a = R() * TAU, x = m.x + Math.sin(a) * 0.9, z = m.z + Math.cos(a) * 0.9;
+      if (!canStand(x, z, 0.35)) continue;
+      const c = new Monster(m.id, depth); c.x = x; c.z = z; c.rot = R() * TAU; c.syncVisual(); c.vis.cur = c.rot;
+      WORLD.monsters.push(c); break;
+    }
+  }
+}
+
 function initVigil() {
   applyVigilSettings();
   const css = document.createElement('style');

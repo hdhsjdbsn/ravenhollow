@@ -237,7 +237,7 @@ function itemTooltip(it, hero) {
   if (it.armor) { let ar = it.armor; if (it.identified && it.stats.earmor) ar = Math.round(ar * (1 + it.stats.earmor / 100)); L.push({ text: `Defense: ${ar}`, color: it.stats.earmor && it.identified ? 'var(--magic)' : null }); }
   if (B.block) L.push({ text: `Chance to Ward: ${B.block + (it.identified ? (it.stats.block || 0) : 0)}%` });
   if (B.light) L.push({ text: `Light Radius +${B.light}%  ·  Fire Spells +${B.spell}%`, color: 'var(--muted)' });
-  if (B.kind === 'potion') L.push({ text: B.effect === 'heal' ? `Restores ${Math.round(B.amount * 100)}% Life` : B.effect === 'mana' ? `Restores ${Math.round(B.amount * 100)}% Mana` : B.effect === 'both' ? `Restores ${Math.round(B.amount * 100)}% Life and Mana` : `Permanently +1 ${({ str: 'Strength', dex: 'Dexterity', mag: 'Magic', vit: 'Vitality' })[B.effect]}`, color: 'var(--muted)' });
+  if (B.kind === 'potion') L.push({ text: B.effect === 'heal' ? `Restores ${Math.round(B.amount * 100)}% Life` : B.effect === 'mana' ? `Restores ${Math.round(B.amount * 100)}% ${G.settings.lantern !== false ? 'Lantern Fire' : 'Mana'}` : B.effect === 'both' ? `Restores ${Math.round(B.amount * 100)}% Life and Mana` : `Permanently +1 ${({ str: 'Strength', dex: 'Dexterity', mag: 'Magic', vit: 'Vitality' })[B.effect]}`, color: 'var(--muted)' });
   if (B.kind === 'scroll') L.push({ text: B.effect === 'portal' ? 'Opens a portal back to Ravenhollow' : 'Reveals the powers of a magic item', color: 'var(--muted)' });
   if (it.kind === 'tome') L.push({ text: 'Read to learn or improve this skill', color: 'var(--muted)' });
   if (it.qty > 1 && it.kind !== 'gold') L.push({ text: `Quantity: ${it.qty}`, color: 'var(--muted)' });

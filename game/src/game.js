@@ -396,6 +396,7 @@ function stashLevel() {
   WORLD.projectiles = []; WORLD.effects = [];
   clearLights(); FX.add.clear(); FX.soft.clear(); FX.decals = [];
   for (const d of WORLD.drops) if (d.label) { d.label.remove(); d.label = null; }
+  WORLD.drops = [];   // the stashed level keeps its own list; nothing may label it while the next level loads
   WORLD.root = null;
 }
 function restoreOrBuild(depth) {
@@ -412,7 +413,7 @@ function restoreOrBuild(depth) {
   if (depth === 0) { L = buildTown(); }
   else { L = new Level(depth, levelSeed(depth)); L.generate(); L.buildTiles(); L.decorate(); L.planSpawns(monsterTable(depth)); }
   WORLD.level = L;
-  for (const s of L.lightSrc) addLight(s);
+  for (const s of L.lightSrc) addLight(typeof vLevelLight === 'function' ? vLevelLight(s, depth) : s);
   FX.fires = L.fires || [];
   FX.decals = [];
   for (const d of L.decals) FX.decals.push({ type: d.type, x: d.x, z: d.z, s: d.s, rot: d.rot });
@@ -443,6 +444,7 @@ function restoreOrBuild(depth) {
         }
       }
     }
+    if (typeof vExtraSpawns === 'function') vExtraSpawns(L, depth, R);
     spawnBoss(depth);
   }
 }
@@ -842,6 +844,7 @@ function openOptions() {
     { slider: true, label: 'Brightness', get: () => (S.brightness - 0.6) / 1.0, set: v => { S.brightness = 0.6 + v * 1.0; applySettings(); } },
     { toggle: () => { S.grain = !S.grain; applySettings(); }, label: 'Film grain', get: () => S.grain ? 'On' : 'Off' },
     { toggle: () => { S.showDamage = !S.showDamage; applySettings(); }, label: 'Damage numbers', get: () => S.showDamage ? 'On' : 'Off' },
+    { toggle: () => { const o = ['pilgrim', 'penitent', 'martyr'], i = o.indexOf(S.difficulty || 'penitent'); S.difficulty = o[(i + 1) % 3]; applySettings(); }, label: 'Difficulty (new levels)', get: () => ({ pilgrim: 'Pilgrim', penitent: 'Penitent', martyr: 'Martyr' })[S.difficulty || 'penitent'] },
     { toggle: () => { S.lantern = S.lantern === false; applySettings(); applyVigilSettings(); }, label: 'Lantern of the Penitent', get: () => S.lantern !== false ? 'On' : 'Off' },
     { toggle: () => { S.rhythm = S.rhythm === false; applySettings(); applyVigilSettings(); }, label: 'Combat rhythm', get: () => S.rhythm !== false ? 'On' : 'Off' },
     { toggle: () => { const fs = document.fullscreenElement; if (fs) document.exitFullscreen(); else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => { }); }, label: 'Fullscreen', get: () => document.fullscreenElement ? 'On' : 'Off' },

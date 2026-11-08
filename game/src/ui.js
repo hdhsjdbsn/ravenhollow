@@ -173,12 +173,18 @@ function updateLabels() {
     const near = H && Math.hypot(H.x - d.x, H.z - d.z) < 3.2;
     const focus = Game.interactTarget === d;
     if ((show || near || focus) && d.t >= 1) {
+      if (d.label && !d.label.isConnected) d.label = null;
       if (!d.label) { d.label = $('div', 'glabel pe', UI.labels, esc(itemName(d.it))); d.label.style.color = itemColor(d.it); d.label.onclick = () => { Game.walkTo = { drop: d }; }; }
       worldToScreen(d.x, 0.35, d.z, sp);
       d.label.style.transform = `translate(${sp.x / UI.zs}px, ${sp.y / UI.zs}px) translate(-50%, -100%)`;
       d.label.classList.toggle('focus', focus);
       d.label.style.display = 'block';
     } else if (d.label) d.label.style.display = 'none';
+  }
+  // sweep: a label whose item is no longer on this floor goes
+  if (UI.labels.childElementCount > WORLD.drops.length) {
+    const own = new Set(WORLD.drops.map(d => d.label));
+    for (const e of [...UI.labels.children]) if (!own.has(e)) e.remove();
   }
 }
 function updatePrompt() {
@@ -394,7 +400,7 @@ function openHeroScreen(focusInv) {
     if (H.statPts > 0) $('div', 'ptsleft', charCol, `${H.statPts} attribute point${H.statPts > 1 ? 's' : ''} to spend`);
     const st = $('div', 'stats', charCol);
     const row = (a, b, c) => $('div', 'srow', st, `<span>${a}</span><b${c ? ` style="color:${c}"` : ''}>${b}</b>`);
-    row('Life', `${Math.ceil(H.hp)} / ${H.maxHp}`); row('Mana', `${Math.floor(H.mana)} / ${H.maxMana}`);
+    row('Life', `${Math.ceil(H.hp)} / ${H.maxHp}`); row(G.settings.lantern !== false ? 'Lantern fire' : 'Mana', `${Math.floor(H.mana)} / ${H.maxMana}`);
     row('Damage', `${H.dmg[0]} - ${H.dmg[1]}`); row('Chance to hit', `${H.tohit}`); row('Armor', `${H.armor}`);
     if (H.block) row('Block chance', `${Math.round(H.block)}%`);
     row('Fire resist', `${H.res.fire}%`, H.res.fire > 0 ? '#ff9060' : null); row('Cold resist', `${H.res.cold}%`, H.res.cold > 0 ? '#80c0ff' : null); row('Lightning resist', `${H.res.light}%`, H.res.light > 0 ? '#ffe060' : null);

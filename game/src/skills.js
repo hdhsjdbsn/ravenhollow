@@ -188,7 +188,11 @@ function heroCastSkill(H, id) {
   if (!S || r <= 0) return false;
   if (WORLD.depth === 0) { UI.msg('That would be unwise in town.', '#a09080'); return false; }
   const cost = S.mana(r);
-  if (H.mana < cost) { UI.msg('Not enough mana.', '#6080ff'); SFX.play('noMana'); heroBark('nomana', 5); return false; }
+  if (H.mana < cost) {
+    if (G.settings.lantern !== false) { UI.msg('The lantern has no fire to spare.', '#e09050'); SFX.play('noMana'); heroBark('nofire', 5); }
+    else { UI.msg('Not enough mana.', '#6080ff'); SFX.play('noMana'); heroBark('nomana', 5); }
+    return false;
+  }
   H.mana -= cost;
   const aim = heroAim(H, 10);
   S.cast(H, aim, r);
