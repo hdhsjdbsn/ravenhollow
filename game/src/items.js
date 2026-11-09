@@ -288,11 +288,11 @@ function itemIcon(it) {
   if (ICON_CACHE[key]) return ICON_CACHE[key];
   const r = window.ICONS && ICONS.r[itemView(it)];
   const px = window.ICONS && ICONS.px;                       // sprite atlas: drawn 1:1, hard pixels
-  const S = px ? 144 : 96, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const S = px ? 144 : 128, cv = document.createElement('canvas'); cv.width = cv.height = S;
   const x = cv.getContext('2d');
   if (px) x.imageSmoothingEnabled = false;
   if (r && ICON_IMG) {
-    const k = px ? Math.min(1.7, S * 0.86 / Math.max(r[2], r[3])) : Math.min(1.25, (S - 8) / Math.max(r[2], r[3]));
+    const k = px ? Math.min(1.7, S * 0.86 / Math.max(r[2], r[3])) : Math.min(1.25, (S - 10) / Math.max(r[2], r[3]));
     const w = r[2] * k, h = r[3] * k;
     if (it.rarity > 0) { x.shadowColor = it.rarity === 3 ? 'rgba(220,170,60,0.55)' : 'rgba(110,140,255,0.45)'; x.shadowBlur = 10; }
     x.drawImage(ICON_IMG, r[0], r[1], r[2], r[3], Math.round((S - w) / 2), Math.round((S - h) / 2), w, h);
