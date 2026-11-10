@@ -66,7 +66,7 @@ function applyVigilSettings() {
   const _al = applyLook;
   applyLook = function (name) {
     _al(name);
-    if (!vLantern() || name === 'town') return;
+    if (!vLantern() || name === 'town' || (LOOK[name] && LOOK[name].v2)) return;
     const S = GFX.S; S.amb = S.amb.map(v => v * 0.3); S.lift = S.lift.map(v => v * 0.25); S.expo *= 0.92;
   };
   const _ul = updateLantern;

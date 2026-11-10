@@ -9,7 +9,7 @@ const GFX = (() => {
     cam: [0, 0, 0], camRaw: [0, 0, 0], lights: [], sheets: {}, queue: [], decalQ: [], parts: [], puffs: [], flames: [], glows: [], trails: [],
     amb: [0.03, 0.03, 0.04], sun: [0, 0, 0], sunDir: [0.4, 0.8, 0.3], fog: 0.0022, fogTop: 3.2, fogCol: [0, 0, 0], mist: 1, grime: 1, wet: 0,
     expo: 0.85, sat: 0.7, grain: 0.05, dither: 52, vig: 0.85, tint: [1, 1, 1], lift: [0, 0, 0], gain: [1.07, 1.0, 0.8], fade: 1, shake: 0, haze: [],
-    cut: null, chars: [], emis: 1, occ: null, decalRect: [0, 0, 64, 0], stats: {},
+    cut: null, chars: [], emis: 1, occ: null, decalRect: [0, 0, 64, 0], stats: {}, v2: 0, bloom: 0.45, sharp: 0.5,
   };
   // ---------------------------------------------------------------- GL helpers
   function prog(vs, fs) {
@@ -53,7 +53,7 @@ const GFX = (() => {
   }
   // ---------------------------------------------------------------- targets
   let quadVAO, instVAO, instBuf, partVAO, partBuf, trailVAO, trailBuf;
-  let G0, G1, G2, depthTex, gbFB, sceneTex, sceneFB, sceneFB0, ATMO, BL, DECAL, occTex;
+  let G0, G1, G2, depthTex, gbFB, sceneTex, sceneFB, sceneFB0, ATMO, BL, DECAL, occTex, gritTex;
   const INST_F = 20, MAXI = 8192;
   const instData = new Float32Array(MAXI * INST_F);
   const partData = new Float32Array(4096 * 8);
@@ -86,6 +86,16 @@ const GFX = (() => {
     ATMO = mkT(W, H); BL = [mkT(320, 200), mkT(320, 200), mkT(160, 100), mkT(160, 100)];
     DECAL = (() => { const t = tex(2048, 2048, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR); return { t, f: fbo([t]) }; })();
     occTex = tex(4, 4, gl.R8, gl.RED, gl.UNSIGNED_BYTE, gl.LINEAR, new Uint8Array(16));
+    // world-space surface detail (assets/grit.webp); a flat grey until it has loaded
+    gritTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, gritTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8, 1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, new Uint8Array([128, 128, 128]));
+    loadImage('assets/grit.webp').then(im => {
+      gl.bindTexture(gl.TEXTURE_2D, gritTex);
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8, gl.RGB, gl.UNSIGNED_BYTE, im); gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    }).catch(() => { });
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     return gl;
   }
@@ -214,7 +224,7 @@ const GFX = (() => {
     gl.bindFramebuffer(gl.FRAMEBUFFER, sceneFB0); gl.disable(gl.DEPTH_TEST); gl.depthMask(false);
     const L = P.light; gl.useProgram(L.p); gl.bindVertexArray(quadVAO);
     gl.uniform3f(L.u.uCam, S.cam[0], S.cam[1], S.cam[2]);
-    bindTex(L.u, 'tG0', G0, 0); bindTex(L.u, 'tG1', G1, 1); bindTex(L.u, 'tG2', G2, 2); bindTex(L.u, 'tDepth', depthTex, 3); bindTex(L.u, 'tOcc', occTex, 4); bindTex(L.u, 'tDecal', DECAL.t, 5);
+    bindTex(L.u, 'tG0', G0, 0); bindTex(L.u, 'tG1', G1, 1); bindTex(L.u, 'tG2', G2, 2); bindTex(L.u, 'tDepth', depthTex, 3); bindTex(L.u, 'tOcc', occTex, 4); bindTex(L.u, 'tDecal', DECAL.t, 5); bindTex(L.u, 'tGrit', gritTex, 6); gl.uniform1f(L.u.uV2, S.v2);
     const o = S.occ || [0, 0, 1, 4]; gl.uniform4f(L.u.uOccRect, o[0], o[1], o[2], o[3]);
     gl.uniform4f(L.u.uDecalRect, S.decalRect[0], S.decalRect[1], S.decalRect[2], 0);
     setLightU(L.u);
@@ -228,7 +238,7 @@ const GFX = (() => {
     gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST); gl.depthMask(true);
     const pass = (prg, target, fn) => { gl.bindFramebuffer(gl.FRAMEBUFFER, target ? target.f : null); if (target) gl.viewport(0, 0, target.w, target.h); gl.useProgram(prg.p); fn(prg.u); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); };
     gl.bindVertexArray(quadVAO);
-    pass(P.atmo, ATMO, u => { gl.uniform3f(u.uCam, S.cam[0], S.cam[1], S.cam[2]); bindTex(u, 'tS', sceneTex, 0); bindTex(u, 'tDepth', depthTex, 1); setLightU(u); gl.uniform1f(u.uTime, t); gl.uniform1f(u.uFog, S.fog); gl.uniform1f(u.uMist, S.mist); gl.uniform1f(u.uFogTop, S.fogTop); gl.uniform3fv(u.uFogCol, S.fogCol); });
+    pass(P.atmo, ATMO, u => { gl.uniform3f(u.uCam, S.cam[0], S.cam[1], S.cam[2]); bindTex(u, 'tS', sceneTex, 0); bindTex(u, 'tDepth', depthTex, 1); setLightU(u); gl.uniform1f(u.uTime, t); gl.uniform1f(u.uFog, S.fog); gl.uniform1f(u.uMist, S.mist); gl.uniform1f(u.uFogTop, S.fogTop); gl.uniform3fv(u.uFogCol, S.fogCol); gl.uniform1f(u.uV2, S.v2); });
     pass(P.bright, BL[0], u => { bindTex(u, 'tS', ATMO.t, 0); gl.uniform2f(u.uTexel, 1 / W, 1 / H); });
     pass(P.blur, BL[1], u => { bindTex(u, 'tS', BL[0].t, 0); gl.uniform2f(u.uDir, 1.5 / 320, 0); });
     pass(P.blur, BL[0], u => { bindTex(u, 'tS', BL[1].t, 0); gl.uniform2f(u.uDir, 0, 1.5 / 200); });
@@ -242,7 +252,7 @@ const GFX = (() => {
     const U = P.post.u; gl.useProgram(P.post.p);
     bindTex(U, 'tS', ATMO.t, 0); bindTex(U, 'tB1', BL[0].t, 1); bindTex(U, 'tB2', BL[2].t, 2);
     const hz = new Float32Array(16); S.haze.slice(0, 4).forEach((h, k) => hz.set(h, k * 4)); gl.uniform4fv(U.uHaze, hz);
-    gl.uniform1f(U.uTime, t); gl.uniform1f(U.uExpo, S.expo); gl.uniform1f(U.uSat, S.sat); gl.uniform1f(U.uGrain, S.grain); gl.uniform1f(U.uDither, S.dither); gl.uniform1f(U.uVig, S.vig);
+    gl.uniform1f(U.uTime, t); gl.uniform1f(U.uExpo, S.expo); gl.uniform1f(U.uSat, S.sat); gl.uniform1f(U.uGrain, S.grain); gl.uniform1f(U.uDither, S.dither); gl.uniform1f(U.uVig, S.vig); gl.uniform1f(U.uBloom, S.bloom); gl.uniform1f(U.uSharp, S.sharp); gl.uniform1f(U.uV2, S.v2);
     gl.uniform2f(U.uShake, (Math.random() - 0.5) * S.shake / W, (Math.random() - 0.5) * S.shake / H); gl.uniform2f(U.uRes, vw, vh);
     gl.uniform3fv(U.uTint, S.tint); gl.uniform3fv(U.uLift, S.lift); gl.uniform3fv(U.uGain, S.gain); gl.uniform1f(U.uFade, S.fade);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -265,7 +275,7 @@ const GFX = (() => {
       const mx = Math.max(L[0], L[1], L[2]), k = (p.shard ? 1.1 : 0.55) / (1 + mx * 0.6) + (p.glow || 0);
       partData.set([p.x, p.y, p.z, p.size, p.col[0] * L[0] * k + (p.emit ? p.emit[0] : 0), p.col[1] * L[1] * k + (p.emit ? p.emit[1] : 0), p.col[2] * L[2] * k + (p.emit ? p.emit[2] : 0), p.a * fade], n * 8); n++;
     }
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE);
     gl.useProgram(P.part.p); gl.uniform3f(P.part.u.uCam, S.cam[0], S.cam[1], S.cam[2]); gl.uniform1f(P.part.u.uAlphaMode, 1);
     gl.bindVertexArray(partVAO); gl.bindBuffer(gl.ARRAY_BUFFER, partBuf); gl.bufferData(gl.ARRAY_BUFFER, partData.subarray(0, n * 8), gl.DYNAMIC_DRAW);
     gl.drawArrays(gl.POINTS, 0, n);

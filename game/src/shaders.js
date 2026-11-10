@@ -91,7 +91,8 @@ uniform vec4 uCh[8];            // characters: x, z, radius, height
 uniform vec3 uAmb;
 uniform vec3 uSun;              // directional (moon) light colour; 0 = none
 uniform vec3 uSunDir;           // towards the light
-uniform float uTime, uEmis, uGrime, uWet;
+uniform float uTime, uEmis, uGrime, uWet, uV2;
+uniform sampler2D tGrit;
 uniform vec4 uFill; uniform vec3 uFillC;   // soft, shadowless fill from the hero's lantern that keeps figures readable
 out vec4 oc;
 float h13(vec3 p) { p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
@@ -138,7 +139,7 @@ float charShadow(vec3 P, vec3 L) {
 void main() {
   ivec2 fp = ivec2(gl_FragCoord.xy);
   float z = texelFetch(tDepth, fp, 0).r;
-  if (z >= 0.99999) { oc = vec4(0, 0, 0, 1); return; }
+  if (z >= 0.99999) { oc = vec4(0, 0, 0, 0); return; }
   vec4 g0 = texelFetch(tG0, fp, 0), g1 = texelFetch(tG1, fp, 0), g2 = texelFetch(tG2, fp, 0);
   vec2 px = vec2(gl_FragCoord.x, RES.y - gl_FragCoord.y);
   vec3 P = fromPix(px, z * DR);
@@ -153,16 +154,45 @@ void main() {
     alb = mix(alb, alb * vec3(0.86, 0.9, 0.76), smoothstep(0.55, 0.8, n2) * 0.5 * uGrime);
     gloss *= mix(1.0, 0.6 + 0.8 * smoothstep(0.3, 0.7, n2), uGrime);
   }
+  float refl = 0.0, flatK = 0.0;
+  if (uV2 > 0.0 && g2.g < 0.5 && em <= 0.0) {
+    // surface detail quilted from the concept plates, anchored in the world (triplanar): pits, chisel marks, cracks
+    vec3 w = pow(abs(N), vec3(4.0)); w /= (w.x + w.y + w.z);
+    vec3 Q = P * 0.72;
+    vec3 tx = texture(tGrit, Q.zy).rgb, ty = texture(tGrit, Q.xz).rgb, tz = texture(tGrit, Q.xy).rgb;
+    vec3 Q2 = P * 2.3 + 0.37;
+    vec3 ux = texture(tGrit, Q2.zy).rgb, uy = texture(tGrit, Q2.xz).rgb, uz = texture(tGrit, Q2.xy).rgb;
+    float hgt = (tx.b * w.x + ty.b * w.y + tz.b * w.z - 0.5) * 2.0 + (ux.b * w.x + uy.b * w.y + uz.b * w.z - 0.5);
+    vec2 gxn = (tx.rg - 0.5) + (ux.rg - 0.5) * 0.6, gyn = (ty.rg - 0.5) + (uy.rg - 0.5) * 0.6, gzn = (tz.rg - 0.5) + (uz.rg - 0.5) * 0.6;
+    vec3 bump = w.x * vec3(0.0, gxn.y, gxn.x) + w.y * vec3(gyn.x, 0.0, gyn.y) + w.z * vec3(gzn.x, gzn.y, 0.0);
+    float flat_ = smoothstep(0.75, 0.95, N.y); flatK = flat_ * step(P.y, 0.2);                       // floors: gentler, or wet stone turns to foil
+    N = normalize(N + vec3(0.0, 0.9, 0.0) * flat_ - bump * mix(1.5, 0.3, flat_) * uV2);
+    alb *= clamp(1.0 + hgt * mix(0.42, 0.3, flat_) * uV2, 0.45, 1.5);
+    ao *= clamp(1.0 + min(hgt, 0.0) * 0.5 * uV2, 0.5, 1.0);
+    gloss *= clamp(1.0 + hgt * 0.5, 0.5, 1.5) * mix(1.0, 0.55, flat_);
+    // standing water in the hollows of the floor: dark, flat, mirror-bright
+    if (uWet > 0.0 && g1.y * 2.0 - 1.0 > 0.82 && P.y < 0.12) {
+      float pn = vn3(vec3(P.xz * 0.42, 3.0)) * 0.65 + vn3(vec3(P.xz * 1.3, 7.0)) * 0.35 - hgt * 0.07 - (1.0 - ao) * 0.25;
+      float pd = smoothstep(0.62 - 0.3 * uWet, 0.67 - 0.3 * uWet, pn);
+      float damp = smoothstep(0.5 - 0.3 * uWet, 0.64 - 0.3 * uWet, pn);
+      alb *= mix(1.0, 0.42, damp);
+      gloss = mix(mix(gloss, max(gloss, 0.2), damp), 0.96, pd);
+      N = normalize(mix(N, vec3(0.0, 1.0, 0.0), pd * 0.97));
+      refl = pd * 0.6 + (damp - pd) * 0.08;
+    }
+  }
   // blood, wet and dust painted on the floor
   if (N.y > 0.6 && P.y < 0.5) {
     vec4 dc = texture(tDecal, (P.xz - uDecalRect.xy) / uDecalRect.z);
     alb = mix(alb, vec3(0.075, 0.004, 0.003), clamp(dc.r, 0.0, 1.0) * 0.93);
     alb = mix(alb, vec3(0.38, 0.35, 0.3), clamp(dc.b, 0.0, 1.0) * 0.55);
     gloss = max(gloss * (1.0 - dc.b), dc.g * 0.85);
-    gloss = max(gloss, uWet * smoothstep(0.55, 0.8, vn3(vec3(P.xz * 0.7, 1.0))) * 0.6);
+    if (uV2 <= 0.0) gloss = max(gloss, uWet * smoothstep(0.55, 0.8, vn3(vec3(P.xz * 0.7, 1.0))) * 0.6);
   }
   vec3 V = -CD;
-  vec3 col = alb * uAmb * (0.55 + 0.45 * max(N.y, 0.0)) * ao;
+  if (uV2 > 0.0 && g2.g < 0.5 && P.y < 0.1) N = normalize(mix(N, vec3(0.0, 1.0, 0.0), 0.45 * smoothstep(0.3, 0.6, N.y)));   // raking light: the lips of the flagstones should not outshine their faces
+  vec3 Ns = normalize(mix(N, vec3(0.0, 1.0, 0.0), 0.85 * flatK));   // highlights on the floor come from the slab, not from every chip in it
+  vec3 col = alb * uAmb * (0.55 + (0.45 + 1.6 * uV2) * max(N.y, 0.0)) * ao;
   if (dot(uSun, uSun) > 0.0) {
     float ndl = max(dot(N, uSunDir), 0.0);
     if (ndl > 0.0) { float s = gridShadow(P + N * 0.04, P + uSunDir * 14.0, 14.0) * charShadow(P, P + uSunDir * 14.0); col += alb * ndl * uSun * s * (0.5 + 0.5 * ao); }
@@ -180,7 +210,7 @@ void main() {
     if (uLc[i].w > 0.5) s = gridShadow(P + N * 0.05, uL[i].xyz, 8.0);
     if (uLc[i].w > -0.5) s *= charShadow(P, uL[i].xyz);
     vec3 Hh = normalize(Ld + V);
-    float spec = pow(max(dot(N, Hh), 0.0), 10.0 + gloss * 70.0) * gloss * 2.2;
+    float spec = pow(max(dot(Ns, Hh), 0.0), 10.0 + gloss * (70.0 + 170.0 * uV2 * gloss)) * gloss * (2.2 + 3.0 * uV2 * gloss);
     col += (alb * wrap * (0.45 + 0.55 * ao) + spec * clamp(ndl, 0.0, 1.0)) * uLc[i].rgb * a * s;
   }
   // contact darkening under characters
@@ -192,7 +222,7 @@ void main() {
   col += alb * em * uEmis * 4.0 + vec3(1.0, 0.45, 0.12) * em * em * uEmis * 0.8;
   col += alb * g2.b;
   float fl = g2.r * g2.r; col += vec3(0.35, 0.25, 0.18) * fl;
-  oc = vec4(col, 1.0);
+  oc = vec4(col, refl);
 }`;
 
 // ---------------------------------------------------------------- forward FX (after lighting, depth tested)
@@ -337,15 +367,32 @@ void main() {
 const ATMO_FS = GLSL_COMMON + `
 uniform sampler2D tS, tDepth;
 uniform vec4 uL[${NLIGHT}]; uniform vec4 uLc[${NLIGHT}]; uniform int uNL;
-uniform float uTime, uFog, uMist, uFogTop;
+uniform float uTime, uFog, uMist, uFogTop, uV2;
 uniform vec3 uFogCol;
 out vec4 oc;
 float attnA(float d, float r) { float x = clamp(1.0 - (d * d) / (r * r), 0.0, 1.0); return x * x / (1.0 + d * d * 0.35); }
 void main() {
   ivec2 fp = ivec2(gl_FragCoord.xy);
-  vec3 c = texelFetch(tS, fp, 0).rgb;
+  vec4 c4 = texelFetch(tS, fp, 0);
+  vec3 c = c4.rgb;
   float dz = texelFetch(tDepth, fp, 0).r;
   vec2 px = vec2(gl_FragCoord.x, RES.y - gl_FragCoord.y);
+  if (uV2 > 0.0 && c4.a > 0.01 && dz < 0.9999) {
+    // the mirrored view ray climbs straight up the screen (0.866 * PPM px per metre) while its depth grows 0.5 per metre:
+    // walk it until something in the scene stands in front of it
+    vec3 Pw = fromPix(px, dz * DR);
+    float rip = (vnoise2(Pw.xz * 5.0 + uTime * vec2(0.25, 0.1)) - 0.5) + (vnoise2(Pw.xz * 13.0 - uTime * 0.3) - 0.5) * 0.5;
+    float t0 = dz * DR, sstep = 0.035, sr = 0.03; vec3 hit = vec3(0); float got = 0.0;
+    for (int i = 0; i < 44; i++) {
+      sr += sstep; sstep *= 1.07;
+      vec2 q = gl_FragCoord.xy + vec2(rip * (2.0 + sr * 3.0), sr * 0.8660254 * PPM);
+      if (q.y >= RES.y || q.x < 0.0 || q.x >= RES.x) break;
+      float ds = texelFetch(tDepth, ivec2(q), 0).r * DR;
+      float tr = t0 + sr * 0.5;
+      if (ds < tr && tr - ds < 0.6 + sr * 0.5) { hit = texelFetch(tS, ivec2(q), 0).rgb; got = 1.0 - smoothstep(2.6, 4.2, sr); break; }
+    }
+    c = c * (1.0 - c4.a * 0.35) + hit * got * c4.a * 0.9;
+  }
   vec3 O = fromPix(px, 0.0);
   float ts = dz > 0.9999 ? DR : dz * DR;
   // haze slab between the floor and uFogTop
@@ -398,7 +445,7 @@ void main() {
 }`;
 const POST_FS = `#version 300 es
 precision highp float;
-uniform sampler2D tS, tB1, tB2; uniform float uTime, uExpo, uFade, uSat, uGrain, uDither, uVig; uniform vec2 uRes, uShake; uniform vec3 uTint, uLift, uGain; uniform vec4 uHaze[4];
+uniform sampler2D tS, tB1, tB2; uniform float uTime, uExpo, uFade, uSat, uGrain, uDither, uVig, uBloom, uSharp, uV2; uniform vec2 uRes, uShake; uniform vec3 uTint, uLift, uGain; uniform vec4 uHaze[4];
 in vec2 vUV; out vec4 oc;
 float h(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 vec3 aces(vec3 x) { return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
@@ -414,19 +461,26 @@ void main() {
   vec3 c = vec3(texture(tS, uv + cd * ca).r, texture(tS, uv).g, texture(tS, uv - cd * ca).b);
   vec2 tx = 1.0 / vec2(${RES_W}.0, ${RES_H}.0);
   vec3 nb = (texture(tS, uv + vec2(tx.x, 0)).rgb + texture(tS, uv - vec2(tx.x, 0)).rgb + texture(tS, uv + vec2(0, tx.y)).rgb + texture(tS, uv - vec2(0, tx.y)).rgb) * 0.25;
-  c = max(c + (c - nb) * 0.5, 0.0);
+  c = max(c + (c - nb) * uSharp, 0.0);
   vec3 bl = texture(tB1, uv).rgb * 0.7 + texture(tB2, uv).rgb * 0.9;
-  c += bl * 0.45;
+  c += bl * uBloom;
   c *= uExpo;
   c = aces(c);
   float l = dot(c, vec3(0.299, 0.587, 0.114));
   c = mix(vec3(l), c, uSat);
   c = max(c - 0.006, 0.0) * 1.006;
-  c *= mix(vec3(0.9, 1.0, 0.94), vec3(1.0), smoothstep(0.0, 0.25, l));
+  c *= mix(mix(vec3(0.9, 1.0, 0.94), vec3(1.0), uV2), vec3(1.0), smoothstep(0.0, 0.25, l));
   c = mix(c, c * uGain, smoothstep(0.2, 0.85, l));
   c += uLift * (1.0 - l);
   c = pow(max(c, 0.0), vec3(1.0 / 2.2));
   c = smoothstep(0.0, 1.0, c) * 0.25 + c * 0.75;
+  if (uV2 > 0.0) {
+    // the concept's palette: cold slate in the shadows, ember in the lights, blacks that stay black
+    float lv = dot(c, vec3(0.299, 0.587, 0.114));
+    c = mix(c, c * vec3(0.84, 0.97, 1.08), (1.0 - smoothstep(0.0, 0.3, lv)) * 0.7 * uV2);
+    c = mix(c, c * vec3(1.08, 0.98, 0.86), smoothstep(0.35, 0.9, lv) * 0.6 * uV2);
+    c = mix(c, smoothstep(0.02, 0.98, c), 0.35 * uV2);
+  }
   vec2 q = vUV - 0.5; q.x *= 1.25;
   c *= 1.0 - smoothstep(0.28, 0.82, length(q) * (1.0 + 0.05 * sin(atan(q.y, q.x) * 3.0 + 1.0))) * uVig;
   c *= uTint;

@@ -51,8 +51,17 @@ async function startTestRoom() {
   WORLD.hero = h; h.recalc(); h.hp = h.maxHp; h.mana = h.maxMana;
   UI.hud.style.display = ''; Game.state = 'play';
   h.rebuildVisual();
-  await enterLevel(4, 'down');
-  setTimeout(() => UI.msg('Ossuary test room: the new Penitent', '#c8a45a', true), 1200);
+  Game.showcase = true; for (const k in Game.cache) delete Game.cache[k];
+  await enterLevel(4, 'up');
+  setTimeout(() => UI.msg('Graphics test room: the Ashen Ossuary', '#c8a45a', true), 1200);
+}
+// the same room from the title menu (the save game is left alone while Game.showcase is set)
+function startShowcase() {
+  closeAllPanels(); stopVoice();
+  if (Game.titleEl) { Game.titleEl.remove(); Game.titleEl = null; }
+  Game.camGoal = null; WORLD.portalObj = null;
+  UI.fadeTo(1, 10).then(async () => { stashLevel(); await startTestRoom(); UI.fadeTo(0, 1200); });
+  UI.hint.style.transition = 'none'; UI.hint.style.opacity = 1;
 }
 function applySettings() {
   applyVolumes();
@@ -131,7 +140,7 @@ function update(dt) {
     if (WORLD.depth === 0 && Math.random() < dt * 4) FX.soft.emit({ x: H.x + rand.range(-13, 13), y: 0.18, z: H.z + rand.range(-13, 13), vx: 0.18, vy: 0.01, vz: 0.06, c: [0.46, 0.44, 0.5], life: 8, s: 1.8, s2: 3.2, a: 0.08 });
     else if (WORLD.depth > 0 && Math.random() < dt * 2.2) {
       const mx = H.x + rand.range(-9, 9), mz = H.z + rand.range(-9, 9);
-      if (WORLD.level.isFloor(Math.floor(mx), Math.floor(mz))) FX.soft.emit({ x: mx, y: 0.22, z: mz, vx: rand.range(-0.08, 0.08), vy: 0.005, vz: rand.range(-0.08, 0.08), c: WORLD.level.zoneName === 'abyss' ? [0.35, 0.16, 0.1] : [0.3, 0.27, 0.24], life: 9, s: 1.6, s2: 3.0, a: 0.06 });
+      if (WORLD.level && WORLD.level.isFloor(Math.floor(mx), Math.floor(mz))) FX.soft.emit({ x: mx, y: 0.22, z: mz, vx: rand.range(-0.08, 0.08), vy: 0.005, vz: rand.range(-0.08, 0.08), c: WORLD.level.zoneName === 'abyss' ? [0.35, 0.16, 0.1] : [0.3, 0.27, 0.24], life: 9, s: 1.6, s2: 3.0, a: 0.06 });
     }
     // music intensity
     let n = 0, bossNear = null;
@@ -153,6 +162,7 @@ function update(dt) {
 }
 // the Penitent's lantern: the main light in the dungeon, carried in the left hand
 function updateLantern(H) {
+  if (!WORLD.level) return;
   const look = LOOK[WORLD.depth === 0 ? 'town' : WORLD.level.zoneName] || LOOK.abbey;
   const la = look.lantern;
   if (!Game.lantern) Game.lantern = { x: 0, y: 1, z: 0, color: [1, 0.7, 0.4], intensity: 0, radius: 6, flicker: 0.12, priority: 10 };
@@ -411,9 +421,10 @@ function restoreOrBuild(depth) {
   WORLD.monsters = []; WORLD.drops = []; WORLD.objects = []; WORLD.npcs = []; WORLD.special = [];
   let L;
   if (depth === 0) { L = buildTown(); }
+  else if (Game.showcase && depth === 4) { L = buildShowcaseLevel(); }
   else { L = new Level(depth, levelSeed(depth)); L.generate(); L.buildTiles(); L.decorate(); L.planSpawns(monsterTable(depth)); }
   WORLD.level = L;
-  for (const s of L.lightSrc) addLight(typeof vLevelLight === 'function' ? vLevelLight(s, depth) : s);
+  for (const s of L.lightSrc) addLight(typeof vLevelLight === 'function' && !L.showcase ? vLevelLight(s, depth) : s);
   FX.fires = L.fires || [];
   FX.decals = [];
   for (const d of L.decals) FX.decals.push({ type: d.type, x: d.x, z: d.z, s: d.s, rot: d.rot });
@@ -479,7 +490,7 @@ async function enterLevel(depth, arrival) {
   stashLevel();
   WORLD.depth = depth;
   // make sure every sprite this level needs is in memory (and drop what the other zones used)
-  const need = [...ALWAYS_SETS, ...setsForDepth(depth), ...(H ? H.gearLayers().map(l => l.set) : [])];
+  const need = [...ALWAYS_SETS, ...setsForDepth(depth), ...(Game.showcase && depth === 4 ? ZONE_SETS.ashen : []), ...(H ? H.gearLayers().map(l => l.set) : [])];
   if (need.some(n => !SETS[n])) UI.zone('', 'Descending…');
   await loadSetsSafe(need);
   unloadSetsExcept(need);
@@ -491,6 +502,7 @@ async function enterLevel(depth, arrival) {
   else if (depth === 0) p = arrival === 'abbey' ? [23.5, 8.0] : L.townSpawn;
   else if (arrival === 'down' && L.stairsDown) p = [L.stairsDown[0] + 1, L.stairsDown[1] + 2.6];
   else if (L.stairsUp) p = [L.stairsUp[0] + 1, L.stairsUp[1] + 2.4];
+  if (L.showcase) p = [10.5, 12.6];
   if (!p) p = [L.startRoom.cx, L.startRoom.cz];
   H.x = p[0]; H.z = p[1];
   for (let k = 0; k < 60 && !canStand(H.x, H.z, H.radius); k++) { H.x = p[0] + rand.range(-1.5, 1.5); H.z = p[1] + rand.range(-1.5, 1.5); }
@@ -501,7 +513,7 @@ async function enterLevel(depth, arrival) {
   Game.walkTo = null; Game.path = null; WORLD.flowCell = -1;
   prepareLevelGfx(L);
   setCameraTarget(H.x, 0, H.z);
-  setMusic(Z.music); setAmbience(depth === 0 ? 'town' : L.zoneName);
+  setMusic(Z.music); setAmbience(depth === 0 ? 'town' : L.showcase ? 'catacombs' : L.zoneName);
   if (depth > 0) {
     H.maxDepth = Math.max(H.maxDepth, depth);
     if (!window.ACTION && [1, 4, 7, 10].includes(depth) && !H.waystones[depth]) { H.waystones[depth] = true; setTimeout(() => UI.msg('A waystone in Ravenhollow now leads here.', '#80a0ff'), 3000); }
@@ -689,14 +701,14 @@ function talkOsric() {
 
 // ---------------------------------------------------------------- save / load
 function saveGame() {
-  const H = WORLD.hero; if (!H || Game.state === 'title') return;
+  const H = WORLD.hero; if (!H || Game.state === 'title' || Game.showcase) return;
   try { localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 2, hero: H.serialize(), seeds: Game.seeds, time: Date.now() })); } catch (e) { console.warn('save failed', e); }
 }
 function loadSave() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return s && s.hero && CLASSES[s.hero.cls] ? s : null; } catch (e) { return null; } }
 
 // ---------------------------------------------------------------- title
 async function showTitle() {
-  Game.state = 'title';
+  Game.state = 'title'; Game.showcase = false;
   WORLD.hero = null;
   stashLevel(); for (const k in Game.cache) delete Game.cache[k];
   WORLD.depth = 0;
@@ -732,6 +744,7 @@ function titleMenu() {
       else { popPanel(); newHero(); }
     }
   });
+  entries.push({ label: 'Graphics test room', fn: () => startShowcase() });
   entries.push({ label: 'Options', fn: () => openOptions() });
   entries.push({ label: 'Controls', fn: () => openControls() });
   entries.push({ label: 'Credits', fn: () => openCredits() });

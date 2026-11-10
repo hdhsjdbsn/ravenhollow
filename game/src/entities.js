@@ -973,11 +973,11 @@ function makeObjectMesh(o) {
   if (!OBJ_PIECE[o.type]) return null;
   const n = new Node();
   n.draw = () => {
-    const sh = SETS.crypt_common; if (!sh) return;
+    const sn = o.set && SETS[o.set] ? o.set : 'crypt_common', sh = SETS[sn]; if (!sh) return;
     const p = o.broken ? 'rubble' : OBJ_PIECE[o.type];
     const f = o.used && (o.type === 'chest' || o.type === 'sarcophagus' || o.type === 'coffin') ? 1 : 0;
     const hov = Game.hoverInteract === o || (Game.interactTarget === o && IN.lastDevice === 'pad');
-    GFX.sprite(sh, p, pieceDir('crypt_common', p, o.rot || 0), f, o.x, 0, o.z, hov && !o.used ? HOVER_OPT : null);
+    GFX.sprite(sh, p, pieceDir(sn, p, o.rot || 0), f, o.x, 0, o.z, hov && !o.used ? HOVER_OPT : null);
   };
   return n;
 }

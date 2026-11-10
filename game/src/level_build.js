@@ -19,6 +19,7 @@ function applyLook(name) {
   const L = LOOK[name] || LOOK.abbey, S = GFX.S;
   S.amb = L.amb; S.sun = L.sun || [0, 0, 0]; S.sunDir = L.sunDir || [0.4, 0.8, 0.3]; S.fog = L.fog; S.fogTop = L.fogTop; S.fogCol = L.fogCol; S.mist = L.mist; S.grime = L.grime; S.wet = L.wet;
   S.sat = L.sat; S.gain = L.gain; S.lift = L.lift; S.expo = L.expo * (G.settings.brightness || 1);
+  S.v2 = L.v2 || 0; S.bloom = L.bloom ?? 0.45; S.sharp = L.sharp ?? 0.5; S.dither = L.v2 ? 0 : 52;   // v2: smooth gradients, no posterising
 }
 function pickW(R, list) { let tot = 0; for (const e of list) tot += e[1]; let x = R() * tot; for (const e of list) { x -= e[1]; if (x <= 0) return e[0]; } return list[0][0]; }
 
