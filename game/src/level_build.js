@@ -9,11 +9,14 @@ const KITS = {
 };
 // colour, light and grade per zone
 const LOOK = {
-  town: { amb: [0.034, 0.036, 0.052], sun: [0.2, 0.22, 0.34], sunDir: [-0.55, 0.65, -0.35], fog: 0.0016, fogTop: 4, fogCol: [0.012, 0.014, 0.022], mist: 1.3, grime: 0.6, wet: 0.5, sat: 0.72, gain: [1.06, 1.0, 0.84], lift: [0.004, 0.005, 0.012], expo: 0.9, lantern: [1, 0.72, 0.42, 4.5, 6.5] },
-  abbey: { amb: [0.026, 0.024, 0.028], fog: 0.0024, fogTop: 3.2, fogCol: [0.004, 0.003, 0.002], mist: 1, grime: 1, wet: 0.15, sat: 0.72, gain: [1.07, 1.0, 0.8], lift: [0.006, 0.003, 0.0], expo: 0.86, lantern: [1, 0.68, 0.38, 5.5, 7] },
-  catacombs: { amb: [0.022, 0.022, 0.026], fog: 0.0026, fogTop: 3.2, fogCol: [0.004, 0.004, 0.003], mist: 1.2, grime: 1, wet: 0.2, sat: 0.66, gain: [1.07, 1.0, 0.8], lift: [0.004, 0.004, 0.002], expo: 0.86, lantern: [1, 0.68, 0.38, 5.5, 7] },
-  caves: { amb: [0.04, 0.042, 0.046], fog: 0.0022, fogTop: 3, fogCol: [0.003, 0.004, 0.004], mist: 1.4, grime: 0.8, wet: 0.45, sat: 0.74, gain: [1.05, 1.0, 0.86], lift: [0.003, 0.004, 0.004], expo: 0.88, lantern: [1, 0.72, 0.45, 6, 7.5] },
-  abyss: { amb: [0.04, 0.012, 0.006], fog: 0.0032, fogTop: 3.4, fogCol: [0.02, 0.004, 0.0], mist: 0.8, grime: 0.7, wet: 0, sat: 0.85, gain: [1.1, 0.95, 0.8], lift: [0.012, 0.002, 0.0], expo: 0.85, lantern: [1, 0.66, 0.4, 5, 7] },
+  // dusk, after the key art: a dying orange sun low in the west rakes the gables, cold slate everywhere it cannot reach
+  town: { amb: [0.1, 0.15, 0.25], sun: [2.8, 1.5, 0.75], sunDir: [0.3, 0.5, 0.82], fog: 0.0016, fogTop: 4, fogCol: [0.016, 0.017, 0.024], mist: 0.9, grime: 0.6, wet: 0.6, sat: 0.84, gain: [1.02, 1.0, 0.98], lift: [0.0, 0.002, 0.005], expo: 0.95, lantern: [1, 0.68, 0.38, 4.5, 7], v2: 1, bloom: 0.8, sharp: 0.28 },
+  // v2 look (2026-11-10, rolled out from the graphics test room): cold near-black shadows, ember lights, wet stone,
+  // surface detail, no posterising. 'lightK' scales the level's own torches and braziers.
+  abbey: { amb: [0.03, 0.033, 0.042], fog: 0.002, fogTop: 3.4, fogCol: [0.005, 0.005, 0.006], mist: 0.6, grime: 0.6, wet: 0.35, sat: 0.82, gain: [1.02, 1.0, 0.96], lift: [0.0, 0.0015, 0.003], expo: 0.9, lantern: [1, 0.66, 0.36, 5.5, 8], v2: 1, bloom: 0.8, sharp: 0.28, lightK: 0.7 },
+  catacombs: { amb: [0.027, 0.032, 0.044], fog: 0.002, fogTop: 3.4, fogCol: [0.004, 0.005, 0.007], mist: 0.55, grime: 0.55, wet: 0.55, sat: 0.8, gain: [1.0, 1.0, 1.0], lift: [0.0, 0.0015, 0.004], expo: 0.9, lantern: [1, 0.64, 0.34, 5.5, 8], v2: 1, bloom: 0.8, sharp: 0.28, lightK: 0.65 },
+  caves: { amb: [0.05, 0.062, 0.075], fog: 0.0022, fogTop: 3, fogCol: [0.003, 0.005, 0.006], mist: 0.9, grime: 0.5, wet: 0.75, sat: 0.82, gain: [0.98, 1.0, 1.02], lift: [0.0, 0.002, 0.004], expo: 0.92, lantern: [1, 0.7, 0.42, 7, 9], v2: 1, bloom: 0.8, sharp: 0.28, lightK: 1.3 },
+  abyss: { amb: [0.07, 0.026, 0.016], fog: 0.003, fogTop: 3.4, fogCol: [0.02, 0.004, 0.0], mist: 0.6, grime: 0.5, wet: 0, sat: 0.9, gain: [1.08, 0.96, 0.84], lift: [0.008, 0.001, 0.0], expo: 0.88, lantern: [1, 0.66, 0.4, 6, 8.5], v2: 1, bloom: 0.9, sharp: 0.28, lightK: 1.2 },
 };
 function applyLook(name) {
   const L = LOOK[name] || LOOK.abbey, S = GFX.S;

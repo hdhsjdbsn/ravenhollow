@@ -66,8 +66,9 @@ function applyVigilSettings() {
   const _al = applyLook;
   applyLook = function (name) {
     _al(name);
-    if (!vLantern() || name === 'town' || (LOOK[name] && LOOK[name].v2)) return;
-    const S = GFX.S; S.amb = S.amb.map(v => v * 0.3); S.lift = S.lift.map(v => v * 0.25); S.expo *= 0.92;
+    if (!vLantern() || name === 'town' || name === 'ashen') return;
+    const S = GFX.S, v2 = LOOK[name] && LOOK[name].v2;      // the v2 looks are dark already: a lighter hand
+    S.amb = S.amb.map(v => v * (v2 ? 0.7 : 0.3)); S.lift = S.lift.map(v => v * (v2 ? 0.7 : 0.25)); if (!v2) S.expo *= 0.92;
   };
   const _ul = updateLantern;
   updateLantern = function (H) {
@@ -98,7 +99,8 @@ function vWisps(x, z, n, amount) {
 }
 function vLevelLight(s, depth) {
   if (!vLantern() || !depth) return s;
-  return Object.assign({}, s, { intensity: s.intensity * 0.36, radius: s.radius * 0.62 });
+  const zn = WORLD.level && WORLD.level.zoneName, v2 = zn && LOOK[zn] && LOOK[zn].v2;
+  return Object.assign({}, s, { intensity: s.intensity * (v2 ? 0.75 : 0.36), radius: s.radius * (v2 ? 0.85 : 0.62) });
 }
 function vHarvest(m, src) {
   if (!vLantern() || WORLD.depth === 0) return;

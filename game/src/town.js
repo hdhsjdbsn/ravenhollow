@@ -61,7 +61,7 @@ function buildTown() {
   // ---- houses (footprints swap at 90 degrees) ----
   const house = (piece, x, z, w, d, dir, lit, opts = {}) => {
     const sw = dir % 2 ? d : w, sd = dir % 2 ? w : d;
-    add(T, piece, x, z, dir, { block: [sw, sd], h: 3.6, cut: true });
+    add(T, piece, x, z, dir, { block: [sw, sd], h: 2.3, cut: true });
     if (lit) { const a = dir * Math.PI / 2, fx = x + Math.sin(a) * (d / 2 + 0.7), fz = z + Math.cos(a) * (d / 2 + 0.7); L.lightSrc.push({ x: fx, y: 1.2, z: fz, color: 0xff9a50, intensity: 3.2, radius: 4.5, flicker: 0.1 }); }
     const ex = META[T] && META[T].anims[piece] && META[T].anims[piece].extra;
     if (ex && ex.chimney) { const q = rotOff(ex.chimney, dir, 4); L.fires.push({ smoke: true, x: x + q[0], y: q[1], z: z + q[2] }); }
@@ -108,6 +108,9 @@ function buildTown() {
   add(CM, 'rubble', 21.0, 6.5, 0); add(CM, 'rubble', 25.6, 6.0, 1); add(CM, 'rubble', 18.0, 5.0, 0);
   for (const [x, z] of [[17.6, 9.2], [16.4, 11.0], [28.4, 10.6], [19.0, 12.6], [27.2, 12.4]]) if (L.get(Math.floor(x), Math.floor(z)) === T_FLOOR) add(CM, 'cross', x, z, (R() * 4) | 0, { block: [0.5, 0.4], h: 1.1 });
   add(CM, 'cage', 15.6, 13.4, 1, { block: [0.6, 0.6], h: 2.6 });
+  // gibbets along the road in and by the chapel path (key art)
+  for (const [x, z, d] of [[20.6, 33.4, 0], [25.6, 38.2, 2], [20.4, 11.6, 1], [26.2, 17.2, 3]]) if (L.get(Math.floor(x), Math.floor(z)) === T_FLOOR) add(T, 'gibbet', x, z, d, { block: [0.6, 0.6], h: 3 });
+  for (const [x, z, k] of [[25.4, 30.4, 0], [19.4, 16.4, 1], [27.6, 27.0, 2], [13.2, 27.6, 1]]) if (L.get(Math.floor(x), Math.floor(z)) === T_FLOOR) add(T, 'tree' + k, x, z, (R() * 4) | 0, { block: [0.6, 0.6], h: 3 });
   // ---- trees: dead oaks and black pines along the rim ----
   for (const [x, z, k] of [[18.0, 15.0, 2], [29.6, 15.2, 1], [8.6, 18.6, 0], [38.2, 30.6, 1], [12.6, 34.6, 2]]) if (L.get(Math.floor(x), Math.floor(z)) === T_FLOOR) add(T, 'tree' + k, x, z, (R() * 4) | 0, { block: [0.6, 0.6], h: 3 });
   for (let i = 0; i < 70; i++) {
@@ -116,7 +119,7 @@ function buildTown() {
     const ix = Math.floor(x), iz = Math.floor(z);
     if (L.get(ix, iz) !== T_FLOOR || L.block[L.idx(ix, iz)] || pathCells.has(iz * TOWN_W + ix)) continue;
     if (Math.abs(x - 23) < 4 && z < 10) continue;
-    if (R() < 0.6) add(T, 'tree' + R.int(0, 2), x, z, (R() * 4) | 0, { block: [0.6, 0.6], h: 3 });
+    if (R() < 0.8) add(T, 'tree' + R.int(0, 2), x, z, (R() * 4) | 0, { block: [0.6, 0.6], h: 3 });
     else add(T, 'pine', x, z, (R() * 2) | 0, { block: [0.6, 0.6], h: 3.5 });
   }
   for (let i = 0; i < 25; i++) { const x = R.range(5, 41), z = R.range(5, 41); const ix = Math.floor(x), iz = Math.floor(z); if (L.get(ix, iz) === T_FLOOR && !pathCells.has(iz * TOWN_W + ix) && !L.block[L.idx(ix, iz)]) { const rk = R() < 0.5; add(rk ? T : CM, rk ? 'rock' : 'rubble', x, z, (R() * 2) | 0); } }

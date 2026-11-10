@@ -424,7 +424,8 @@ function restoreOrBuild(depth) {
   else if (Game.showcase && depth === 4) { L = buildShowcaseLevel(); }
   else { L = new Level(depth, levelSeed(depth)); L.generate(); L.buildTiles(); L.decorate(); L.planSpawns(monsterTable(depth)); }
   WORLD.level = L;
-  for (const s of L.lightSrc) addLight(typeof vLevelLight === 'function' && !L.showcase ? vLevelLight(s, depth) : s);
+  { const lk = !L.showcase && LOOK[L.zoneName] && LOOK[L.zoneName].lightK || 1;
+    for (const s0 of L.lightSrc) { const s = lk === 1 ? s0 : Object.assign({}, s0, { intensity: s0.intensity * lk }); addLight(typeof vLevelLight === 'function' && !L.showcase ? vLevelLight(s, depth) : s); } }
   FX.fires = L.fires || [];
   FX.decals = [];
   for (const d of L.decals) FX.decals.push({ type: d.type, x: d.x, z: d.z, s: d.s, rot: d.rot });
