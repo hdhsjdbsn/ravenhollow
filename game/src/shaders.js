@@ -154,7 +154,28 @@ void main() {
     alb = mix(alb, alb * vec3(0.86, 0.9, 0.76), smoothstep(0.55, 0.8, n2) * 0.5 * uGrime);
     gloss *= mix(1.0, 0.6 + 0.8 * smoothstep(0.3, 0.7, n2), uGrime);
   }
-  float refl = 0.0, flatK = 0.0;
+  float refl = 0.0, flatK = 0.0, isCh = step(0.5, g2.g) * step(0.001, uV2);
+  if (uV2 > 0.0) {
+    // creases and contours from the depth buffer: folds of cloth, gaps between ribs and stones go dark, and a figure
+    // gets the dark line round it that the concept's painted sprites have
+    float zc = z * DR;
+    float z1 = texelFetch(tDepth, fp + ivec2(2, 0), 0).r * DR, z2 = texelFetch(tDepth, fp - ivec2(2, 0), 0).r * DR;
+    float z3 = texelFetch(tDepth, fp + ivec2(0, 2), 0).r * DR, z4 = texelFetch(tDepth, fp - ivec2(0, 2), 0).r * DR;
+    float lap = (min(z1, zc + 0.12) + min(z2, zc + 0.12) + min(z3, zc + 0.12) + min(z4, zc + 0.12)) * 0.25 - zc;   // < 0: neighbours nearer = a crease
+    float crease = clamp(-lap * 22.0, 0.0, 1.0);
+    float e1 = texelFetch(tDepth, fp + ivec2(1, 0), 0).r * DR, e2 = texelFetch(tDepth, fp - ivec2(1, 0), 0).r * DR, e3 = texelFetch(tDepth, fp + ivec2(0, 1), 0).r * DR, e4 = texelFetch(tDepth, fp - ivec2(0, 1), 0).r * DR;
+    float edge = clamp((max(max(e1, e2), max(e3, e4)) - zc - 0.15) * 6.0, 0.0, 1.0);   // one pixel wide, or thin limbs turn black                                 // this pixel is on a silhouette
+    if (isCh > 0.5) { crease = 0.0; edge = 0.0; }
+    ao *= 1.0 - crease * mix(0.45, 0.55, isCh);
+    alb *= 1.0 - edge * mix(0.0, 0.35, isCh) - crease * 0.1 * isCh;
+    if (isCh > 0.5) {
+      // figures: darker, grimier cloth and bone, so they read as shapes cut out of the firelight rather than pale dolls
+      float lm = dot(alb, vec3(0.3, 0.55, 0.15));
+      float sat = max(alb.r, max(alb.g, alb.b)) - min(alb.r, min(alb.g, alb.b));
+      alb = mix(alb, lm * vec3(1.06, 0.97, 0.86), 0.35 * (1.0 - smoothstep(0.02, 0.12, sat)));   // greys go warm-dark, the reds and golds stay
+      alb = pow(alb, vec3(1.1)) * 1.55;
+    }
+  }
   if (uV2 > 0.0 && g2.g < 0.5 && em <= 0.0) {
     // surface detail quilted from the concept plates, anchored in the world (triplanar): pits, chisel marks, cracks
     vec3 w = pow(abs(N), vec3(4.0)); w /= (w.x + w.y + w.z);
@@ -212,13 +233,14 @@ void main() {
     vec3 Hh = normalize(Ld + V);
     float spec = pow(max(dot(Ns, Hh), 0.0), 10.0 + gloss * (70.0 + 170.0 * uV2 * gloss)) * gloss * (2.2 + 3.0 * uV2 * gloss);
     col += (alb * wrap * (0.45 + 0.55 * ao) + spec * clamp(ndl, 0.0, 1.0)) * uLc[i].rgb * a * s;
+    if (isCh > 0.5) col += uLc[i].rgb * a * s * pow(1.0 - max(dot(N, V), 0.0), 2.5) * clamp(ndl + 0.45, 0.0, 1.0) * (0.06 + alb * 2.2);   // firelight catching the edges
   }
   // contact darkening under characters
   for (int c = 0; c < 8; c++) {
     vec4 ch = uCh[c]; if (ch.z <= 0.0) continue;
     float dd = length(P.xz - ch.xy); col *= 1.0 - 0.5 * exp(-dd * dd / (ch.z * ch.z * 0.6)) * smoothstep(0.4, 0.0, P.y);
   }
-  if (g2.g > 0.5 && uFill.w > 0.0) { float d = length(P - uFill.xyz); col += alb * uFillC * clamp(1.0 - d / uFill.w, 0.0, 1.0) * (0.55 + 0.45 * max(dot(N, -CD), 0.0)); }
+  if (g2.g > 0.5 && uFill.w > 0.0) { float d = length(P - uFill.xyz); col += (1.0 + 0.2 * uV2) * alb * uFillC * clamp(1.0 - d / uFill.w, 0.0, 1.0) * (0.55 + 0.45 * max(dot(N, -CD), 0.0)); }
   col += alb * em * uEmis * 4.0 + vec3(1.0, 0.45, 0.12) * em * em * uEmis * 0.8;
   col += alb * g2.b;
   float fl = g2.r * g2.r; col += vec3(0.35, 0.25, 0.18) * fl;

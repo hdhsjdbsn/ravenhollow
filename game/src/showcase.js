@@ -5,7 +5,7 @@
 // does not use any of this yet.
 ZONES.ashen = Object.assign({}, ZONES.catacombs, { name: 'The Ashen Ossuary' });
 KITS.ashen = { set: 'crypt_ashen', floors: [['floor', 12], ['floor_crack', 3], ['floor_debris', 2], ['floor_bones', 2]], walls: [['wall', 10], ['wall_b', 3]], low: 'wall_low', torch: 0xff7a2c, crypt: true, ossuary: true };
-LOOK.ashen = { amb: [0.016, 0.02, 0.028], fog: 0.002, fogTop: 3.4, fogCol: [0.004, 0.005, 0.007], mist: 1.1, grime: 0.55, wet: 0.55, sat: 0.8, gain: [1.0, 1.0, 1.0], lift: [0.0, 0.0015, 0.004], expo: 0.9,
+LOOK.ashen = { amb: [0.016, 0.02, 0.028], fog: 0.002, fogTop: 3.4, fogCol: [0.004, 0.005, 0.007], mist: 0.55, grime: 0.55, wet: 0.55, sat: 0.8, gain: [1.0, 1.0, 1.0], lift: [0.0, 0.0015, 0.004], expo: 0.9,
   lantern: [1, 0.64, 0.34, 5.5, 8], v2: 1, bloom: 0.8, sharp: 0.28 };
 ZONE_SETS.ashen = ['crypt_ashen', 'crypt_common', 'skeleton', 'risen'];
 
@@ -51,7 +51,7 @@ Level.prototype.decorateShowcase = function () {
   this.decals.push({ type: 'smear', x: 10.4, z: 12.4, s: 1.4, rot: 0.4 });
   for (const l of this.lightSrc) l.intensity *= 0.6;
   // something waits in the passage
-  for (const [x, z] of [[9.6, 1.6], [10.4, 2.2], [9.8, 2.8]]) this.spawns.push({ type: 'cryptGuard', x, z });
+  for (const [x, z, t] of [[9.6, 1.6, 'cryptGuard'], [10.4, 2.2, 'thrall'], [9.8, 2.8, 'thrall'], [1.6, 9.4, 'risen'], [2.4, 8.6, 'risen']]) this.spawns.push({ type: t, x, z });
 };
 function buildShowcaseLevel() {
   const L = new Level(4, 20261110); L.zoneName = 'ashen'; L.zone = ZONES.ashen; L.showcase = true;

@@ -176,7 +176,7 @@ function updateLantern(H) {
   if (!R3.lightSources.has(L)) addLight(L);
   GFX.S.fill = [H.x, 1.0, H.z, 7.5 * (H.lightMul || 1)]; GFX.S.fillC = [la[0] * 0.22, la[1] * 0.2, la[2] * 0.2];
   // a soft fill so the hero never drowns in black
-  FX.extraFlames = [{ x: p[0], y: p[1], z: p[2], w: 3, h: 5, g: 1.2, glow: 0.45, seed: 7 }];
+  FX.extraFlames = [{ x: p[0], y: p[1], z: p[2], w: 3, h: 5, g: 1.2, glow: GFX.S.v2 ? 1.5 : 0.45, seed: 7 }];   // v2: the lantern wears a halo, as on the concept sheet
 }
 
 // ---------------------------------------------------------------- hero control
