@@ -857,6 +857,7 @@ function openOptions() {
     { slider: true, label: 'Brightness', get: () => (S.brightness - 0.6) / 1.0, set: v => { S.brightness = 0.6 + v * 1.0; applySettings(); } },
     { toggle: () => { S.grain = !S.grain; applySettings(); }, label: 'Film grain', get: () => S.grain ? 'On' : 'Off' },
     { toggle: () => { S.showDamage = !S.showDamage; applySettings(); }, label: 'Damage numbers', get: () => S.showDamage ? 'On' : 'Off' },
+    { toggle: () => { try { localStorage.setItem('rh_cam', CAM_CLOSE ? 'far' : 'close'); } catch (e) { } saveGame(); location.reload(); }, label: 'Camera (restarts the game)', get: () => CAM_CLOSE ? 'Close' : 'Far' },
     { toggle: () => { const o = ['pilgrim', 'penitent', 'martyr'], i = o.indexOf(S.difficulty || 'penitent'); S.difficulty = o[(i + 1) % 3]; applySettings(); }, label: 'Difficulty (new levels)', get: () => ({ pilgrim: 'Pilgrim', penitent: 'Penitent', martyr: 'Martyr' })[S.difficulty || 'penitent'] },
     { toggle: () => { S.lantern = S.lantern === false; applySettings(); applyVigilSettings(); }, label: 'Lantern of the Penitent', get: () => S.lantern !== false ? 'On' : 'Off' },
     { toggle: () => { S.rhythm = S.rhythm === false; applySettings(); applyVigilSettings(); }, label: 'Combat rhythm', get: () => S.rhythm !== false ? 'On' : 'Off' },

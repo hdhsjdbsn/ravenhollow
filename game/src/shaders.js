@@ -1,6 +1,9 @@
 'use strict';
 // GLSL for the pre-rendered renderer: baked sprites/tiles are composited into a G-buffer, lit in real time.
-const RES_W = 1280, RES_H = 800;
+// camera distance: the renderer is pixel-exact (64 px per metre), so 'close' renders fewer pixels and lets the screen
+// scale them up (960x600 = exactly 2x on the Legion's 1920x1200 panel). Set from Options; needs a reload.
+const CAM_CLOSE = (() => { try { return localStorage.getItem('rh_cam') === 'close'; } catch (e) { return false; } })();
+const RES_W = CAM_CLOSE ? 960 : 1280, RES_H = CAM_CLOSE ? 600 : 800;
 const GLSL_COMMON = `#version 300 es
 precision highp float; precision highp int; precision highp sampler2D;
 const vec3 CD = vec3(-0.61237244, -0.5, -0.61237244);
