@@ -15,8 +15,8 @@ const LOOK = {
   // surface detail, no posterising. 'lightK' scales the level's own torches and braziers.
   abbey: { amb: [0.03, 0.033, 0.042], fog: 0.002, fogTop: 3.4, fogCol: [0.005, 0.005, 0.006], mist: 0.6, grime: 0.6, wet: 0.35, sat: 0.82, gain: [1.02, 1.0, 0.96], lift: [0.0, 0.0015, 0.003], expo: 0.9, lantern: [1, 0.66, 0.36, 5.5, 8], v2: 1, bloom: 0.8, sharp: 0.28, lightK: 0.7 },
   catacombs: { amb: [0.027, 0.032, 0.044], fog: 0.002, fogTop: 3.4, fogCol: [0.004, 0.005, 0.007], mist: 0.55, grime: 0.55, wet: 0.55, sat: 0.8, gain: [1.0, 1.0, 1.0], lift: [0.0, 0.0015, 0.004], expo: 0.9, lantern: [1, 0.64, 0.34, 5.5, 8], v2: 1, bloom: 0.8, sharp: 0.28, lightK: 0.65 },
-  caves: { amb: [0.05, 0.062, 0.075], fog: 0.0022, fogTop: 3, fogCol: [0.003, 0.005, 0.006], mist: 0.9, grime: 0.5, wet: 0.75, sat: 0.82, gain: [0.98, 1.0, 1.02], lift: [0.0, 0.002, 0.004], expo: 0.92, lantern: [1, 0.7, 0.42, 7, 9], v2: 1, bloom: 0.8, sharp: 0.28, lightK: 1.3 },
-  abyss: { amb: [0.07, 0.026, 0.016], fog: 0.003, fogTop: 3.4, fogCol: [0.02, 0.004, 0.0], mist: 0.6, grime: 0.5, wet: 0, sat: 0.9, gain: [1.08, 0.96, 0.84], lift: [0.008, 0.001, 0.0], expo: 0.88, lantern: [1, 0.66, 0.4, 6, 8.5], v2: 1, bloom: 0.9, sharp: 0.28, lightK: 1.2 },
+  caves: { amb: [0.05, 0.062, 0.075], fog: 0.0022, fogTop: 3, fogCol: [0.003, 0.005, 0.006], mist: 0.9, grime: 0.5, wet: 0.75, sat: 0.82, gain: [0.98, 1.0, 1.02], lift: [0.0, 0.002, 0.004], expo: 1.05, lantern: [1, 0.7, 0.42, 8.5, 9.5], v2: 1, bloom: 0.8, sharp: 0.28, lightK: 1.3 },
+  abyss: { amb: [0.1, 0.04, 0.026], fog: 0.003, fogTop: 3.4, fogCol: [0.02, 0.004, 0.0], mist: 0.6, grime: 0.5, wet: 0, sat: 0.9, gain: [1.08, 0.96, 0.84], lift: [0.008, 0.001, 0.0], expo: 1.02, lantern: [1, 0.66, 0.4, 8.5, 9.5], v2: 1, bloom: 0.9, sharp: 0.28, lightK: 1.2 },
 };
 function applyLook(name) {
   const L = LOOK[name] || LOOK.abbey, S = GFX.S;
