@@ -53,7 +53,7 @@ const GFX = (() => {
   }
   // ---------------------------------------------------------------- targets
   let quadVAO, instVAO, instBuf, partVAO, partBuf, trailVAO, trailBuf;
-  let G0, G1, G2, depthTex, gbFB, sceneTex, sceneFB, sceneFB0, ATMO, BL, DECAL, occTex, gritTex;
+  let G0, G1, G2, depthTex, gbFB, sceneTex, sceneFB, sceneFB0, ATMO, BL, DECAL, occTex, gritTex, vistaTex;
   const INST_F = 20, MAXI = 8192;
   const instData = new Float32Array(MAXI * INST_F);
   const partData = new Float32Array(4096 * 8);
@@ -86,6 +86,15 @@ const GFX = (() => {
     ATMO = mkT(W, H); BL = [mkT(320, 200), mkT(320, 200), mkT(160, 100), mkT(160, 100)];
     DECAL = (() => { const t = tex(2048, 2048, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, gl.LINEAR); return { t, f: fbo([t]) }; })();
     occTex = tex(4, 4, gl.R8, gl.RED, gl.UNSIGNED_BYTE, gl.LINEAR, new Uint8Array(16));
+    vistaTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, vistaTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8, 1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, new Uint8Array([20, 18, 18]));
+    loadImage('assets/vista.webp').then(im => {
+      gl.bindTexture(gl.TEXTURE_2D, vistaTex);
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8, gl.RGB, gl.UNSIGNED_BYTE, im);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.MIRRORED_REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    }).catch(() => { });
     // world-space surface detail (assets/grit.webp); a flat grey until it has loaded
     gritTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, gritTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB8, 1, 1, 0, gl.RGB, gl.UNSIGNED_BYTE, new Uint8Array([128, 128, 128]));
@@ -238,7 +247,7 @@ const GFX = (() => {
     gl.disable(gl.BLEND); gl.disable(gl.DEPTH_TEST); gl.depthMask(true);
     const pass = (prg, target, fn) => { gl.bindFramebuffer(gl.FRAMEBUFFER, target ? target.f : null); if (target) gl.viewport(0, 0, target.w, target.h); gl.useProgram(prg.p); fn(prg.u); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); };
     gl.bindVertexArray(quadVAO);
-    pass(P.atmo, ATMO, u => { gl.uniform3f(u.uCam, S.cam[0], S.cam[1], S.cam[2]); bindTex(u, 'tS', sceneTex, 0); bindTex(u, 'tDepth', depthTex, 1); setLightU(u); gl.uniform1f(u.uTime, t); gl.uniform1f(u.uFog, S.fog); gl.uniform1f(u.uMist, S.mist); gl.uniform1f(u.uFogTop, S.fogTop); gl.uniform3fv(u.uFogCol, S.fogCol); gl.uniform1f(u.uV2, S.v2); });
+    pass(P.atmo, ATMO, u => { gl.uniform3f(u.uCam, S.cam[0], S.cam[1], S.cam[2]); bindTex(u, 'tS', sceneTex, 0); bindTex(u, 'tDepth', depthTex, 1); setLightU(u); gl.uniform1f(u.uTime, t); gl.uniform1f(u.uFog, S.fog); gl.uniform1f(u.uMist, S.mist); gl.uniform1f(u.uFogTop, S.fogTop); gl.uniform3fv(u.uFogCol, S.fogCol); gl.uniform1f(u.uV2, S.v2); bindTex(u, 'tVista', vistaTex, 2); gl.uniform4fv(u.uVista, S.vista || [0, 0, 0, 0]); });
     pass(P.bright, BL[0], u => { bindTex(u, 'tS', ATMO.t, 0); gl.uniform2f(u.uTexel, 1 / W, 1 / H); });
     pass(P.blur, BL[1], u => { bindTex(u, 'tS', BL[0].t, 0); gl.uniform2f(u.uDir, 1.5 / 320, 0); });
     pass(P.blur, BL[0], u => { bindTex(u, 'tS', BL[1].t, 0); gl.uniform2f(u.uDir, 0, 1.5 / 200); });

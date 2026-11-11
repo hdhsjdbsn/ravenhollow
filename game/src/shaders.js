@@ -394,6 +394,7 @@ uniform sampler2D tS, tDepth;
 uniform vec4 uL[${NLIGHT}]; uniform vec4 uLc[${NLIGHT}]; uniform int uNL;
 uniform float uTime, uFog, uMist, uFogTop, uV2;
 uniform vec3 uFogCol;
+uniform sampler2D tVista; uniform vec4 uVista;   // xyz: world point on the far rim where the horizon sits, w: brightness (0 = off)
 out vec4 oc;
 float attnA(float d, float r) { float x = clamp(1.0 - (d * d) / (r * r), 0.0, 1.0); return x * x / (1.0 + d * d * 0.35); }
 void main() {
@@ -417,6 +418,20 @@ void main() {
       if (ds < tr && tr - ds < 0.6 + sr * 0.5) { hit = texelFetch(tS, ivec2(q), 0).rgb; got = 1.0 - smoothstep(2.6, 4.2, sr); break; }
     }
     c = c * (1.0 - c4.a * 0.35) + hit * got * c4.a * 0.9;
+  }
+  if (uVista.w > 0.0 && dz > 0.9999) {
+    // the far view (village): where the world ends the sunset panorama stands, pinned to the rim, drifting a little
+    // with the camera so it reads as distance
+    float hy = toPix(uVista.xyz).y;
+    vec2 vs = vec2(2048.0, 784.0) * 0.68;
+    float camX = dot(uCam - uVista.xyz, CR) * PPM;
+    vec2 uv = vec2(0.5 + (px.x - RES.x * 0.5 + camX * 0.1) / vs.x, 1.0 - (hy - px.y) / vs.y - 0.22);
+    vec3 v = texture(tVista, vec2(uv.x, clamp(uv.y, 0.002, 0.998))).rgb;
+    v = pow(v, vec3(2.2));
+    float below = smoothstep(0.92, 1.0, uv.y);
+    v = mix(v, vec3(0.085, 0.078, 0.08), below);
+    float drift = vnoise2(vec2(px.x * 0.004 + uTime * 0.01, px.y * 0.01)) * 0.06;
+    c = v * uVista.w * (1.0 + drift);
   }
   vec3 O = fromPix(px, 0.0);
   float ts = dz > 0.9999 ? DR : dz * DR;

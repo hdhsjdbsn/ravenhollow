@@ -54,7 +54,8 @@ function buildTown() {
       L.place(T, p, (R() * 4) | 0, px, pz);
     } else if (v === T_WALL) {
       const low = open(x - 1, z) || open(x, z - 1) || open(x - 1, z - 1);
-      if (low && !(open(x + 1, z) || open(x, z + 1))) { L.place(T, 'cliff_low', (R() * 4) | 0, px, pz); L.occRect(x, z, x + 1, z + 1, 0.5); }
+      const far = x + z < 40;                 // the far rim stays low: beyond it lies the valley (LOOK.town.vista)
+      if (far || (low && !(open(x + 1, z) || open(x, z + 1)))) { L.place(T, 'cliff_low', (R() * 4) | 0, px, pz); L.occRect(x, z, x + 1, z + 1, 0.5); }
       else { L.place(T, 'cliff', (R() * 4) | 0, px, pz, { cut: true }); L.occRect(x, z, x + 1, z + 1, 1.7); }
     }
   }
