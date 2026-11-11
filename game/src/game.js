@@ -747,7 +747,6 @@ function titleMenu() {
       else { popPanel(); newHero(); }
     }
   });
-  entries.push({ label: 'Graphics test room', fn: () => startShowcase() });
   entries.push({ label: 'Options', fn: () => openOptions() });
   entries.push({ label: 'Controls', fn: () => openControls() });
   entries.push({ label: 'Credits', fn: () => openCredits() });
@@ -888,7 +887,8 @@ function openControls() {
   openDialog('Controls', html + status + `<div style="margin-top:6px;color:var(--muted);font-size:14px">Touch: tap to walk and attack, use the buttons at the top left, ✕ closes a window.</div>`, [{ label: 'Back', fn: () => popPanel() }], { onClose: () => { if (Game.titleEl && Game.state === 'title') Game.titleEl.style.display = ''; } }).el.style.cssText += ';bottom:auto;top:50%;transform:translate(-50%,-50%);max-height:96vh;overflow-y:auto';
 }
 function openCredits() {
-  openDialog('Credits', `<div class="credits">Ravenhollow — Beneath the Ashen Chapel<br>A love letter to the dark, gothic action-RPGs of the late nineties.<br><br>Every character, monster, wall and candle was modelled as signed-distance shapes in code and pre-rendered from sixteen directions, then lit again in real time.<br><br>The music is composed generatively and performed on recordings from the Versilian Community Sample Library and VSCO 2 Community Edition (CC0). Sound effects are designed from those recordings and from synthesis.<br><br>Voices: Kokoro-82M neural speech (Apache 2.0)<br>Design, code, art, sound and music: made with Claude</div>`, [{ label: 'Back', fn: () => popPanel() }]);
+  if (Game.titleEl) Game.titleEl.style.display = 'none';
+  openDialog('Credits', `<div class="credits">Ravenhollow — Beneath the Ashen Chapel<br>A love letter to the dark, gothic action-RPGs of the late nineties.<br><br>Every character, monster, wall and candle was modelled as signed-distance shapes in code and pre-rendered from sixteen directions, then lit again in real time.<br><br>The music is composed generatively and performed on recordings from the Versilian Community Sample Library and VSCO 2 Community Edition (CC0). Sound effects are designed from those recordings and from synthesis.<br><br>Voices: Kokoro-82M neural speech (Apache 2.0)<br>Village skyline: from an image generated with ChatGPT<br>Design, code, art, sound and music: made with Claude</div>`, [{ label: 'Back', fn: () => popPanel() }], { onClose: () => { if (Game.titleEl && Game.state === 'title') Game.titleEl.style.display = ''; } });
 }
 
 window.addEventListener('load', () => boot().catch(e => { console.error(e); const lt = document.getElementById('ltext'); if (lt) lt.textContent = 'Error: ' + e.message; }));
