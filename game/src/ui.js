@@ -12,7 +12,7 @@ const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 function glyph(a) {
   const pad = IN.lastDevice === 'pad';
   const P = { a: 'A', b: 'B', x: 'X', y: 'Y', lb: 'LB', rb: 'RB', lt: 'LT', rt: 'RT', view: '⧉', menu: '≡', up: '▲', down: '▼', ls: 'LS', rs: 'RS' };
-  const K = { a: 'Space', b: 'Bksp', x: '1', y: '2', b_skill: '3', rt: '4', lb: 'Q', rb: 'E', lt: 'T', view: 'I', menu: 'Esc', up: 'Tab', down: 'Alt', ls: 'Shift', rs: 'R', char: 'C', skills: 'K' };
+  const K = { a: 'Space', b: 'Bksp', x: '1', y: '2', b_skill: '3', rt: '4', lb: 'Q', rb: 'F', lt: 'T', view: 'I', menu: 'Esc', up: 'Tab', down: 'Alt', ls: 'Shift', rs: 'R', char: 'C', skills: 'K' };
   if (pad) return `<span class="gl gl-${a}">${P[a] || a}</span>`;
   return `<span class="gl gl-key">${K[a] || a}</span>`;
 }

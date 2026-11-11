@@ -10,7 +10,7 @@ const IN = {
 const PAD_MAP = { 0: 'a', 1: 'b', 2: 'x', 3: 'y', 4: 'lb', 5: 'rb', 6: 'lt', 7: 'rt', 8: 'view', 9: 'menu', 10: 'ls', 11: 'rs', 12: 'up', 13: 'down', 14: 'left', 15: 'right' };
 const KEY_MAP = {
   Space: 'a', Enter: 'a', NumpadEnter: 'a', Escape: 'menu', Backspace: 'b', KeyI: 'view', KeyB: 'view', KeyC: 'char', KeyK: 'skills', KeyS: 'skills_k', Tab: 'map', KeyM: 'map',
-  Digit1: 'x', Digit2: 'y', Digit3: 'b', Digit4: 'rb', KeyQ: 'lb', KeyE: 'b', KeyT: 'lt', AltLeft: 'labels', AltRight: 'labels', KeyF: 'rb', KeyR: 'rs', ShiftLeft: 'a', ShiftRight: 'a',
+  Digit1: 'x', Digit2: 'y', Digit3: 'b', Digit4: 'rt', KeyQ: 'lb', KeyE: 'b', KeyT: 'lt', AltLeft: 'labels', AltRight: 'labels', KeyF: 'rb', KeyR: 'rs', ShiftLeft: 'a', ShiftRight: 'a',
   ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
 };
 const KEY_ROLE = { Space: 'dash', ShiftLeft: 'dash', ShiftRight: 'dash', KeyE: 'ember', Digit3: 'ember' };

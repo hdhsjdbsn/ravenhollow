@@ -751,7 +751,7 @@ function titleMenu() {
   entries.push({ label: 'Options', fn: () => openOptions() });
   entries.push({ label: 'Controls', fn: () => openControls() });
   entries.push({ label: 'Credits', fn: () => openCredits() });
-  entries.push({ label: 'Exit game', fn: () => quitApp() });
+  if (!EMBEDDED) entries.push({ label: 'Exit game', fn: () => quitApp() });
   openMenu('', entries, { cls: 'titlemenu', noX: true, onB: () => { }, menuCloses: false, footer: `<span style="font-size:13px">${glyph('a')} Select</span>` });
 }
 const HERO_NAMES = ['Aldric', 'Bertram', 'Corwin', 'Edric', 'Garrick', 'Osmund', 'Roderic', 'Wulfric', 'Anselm', 'Cuthbert', 'Leofric', 'Tobias'];
@@ -821,6 +821,8 @@ function showVictory() {
 }
 
 // ---------------------------------------------------------------- menus
+// inside a web page's frame (itch.io) there is no window to close: the exit entries are left out
+const EMBEDDED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
 function quitApp() {
   try { window.close(); } catch (e) { }
   setTimeout(() => UI.msg('Your progress is saved. Close this window, or press the Steam button and choose Exit Game.', '#a09080', true), 400);
@@ -839,7 +841,7 @@ function openPause() {
       { label: 'Controller test (F2)', fn: () => { popPanel(); PADT.test(true); } },
       { label: 'Controller: default buttons', fn: () => { popPanel(); PADT.reset(); } }] : []),
     { label: 'Save and quit to title', fn: () => { saveGame(); closeAllPanels(); quitToTitle(); } },
-    { label: 'Save and exit game', fn: () => { saveGame(); quitApp(); } },
+    ...(EMBEDDED ? [] : [{ label: 'Save and exit game', fn: () => { saveGame(); quitApp(); } }]),
   ]);
   p.pauses = true;
 }
@@ -869,6 +871,7 @@ function openOptions() {
   ], { footer: `${glyph('a')} change &nbsp; ${glyph('b')} back` });
 }
 function openControls() {
+  if (Game.titleEl) Game.titleEl.style.display = 'none';   // the tall table would sit under the title lettering
   const rows = [
     ['Move', 'Left stick', 'WASD / click'], ['Attack · interact · pick up', 'A', 'Space / left click'], ['Skills', 'X · Y · B · RT', '1 · 2 · 3 · 4 / right click'],
     ['Healing potion', 'LB', 'Q'], [G.settings.lantern !== false ? 'Lamp oil' : 'Mana potion', 'RB', 'F'],
@@ -880,8 +883,9 @@ function openControls() {
   const pads = connectedPads();
   const status = pads.length
     ? `<div style="margin-top:12px;color:#7cc070">Controller detected: ${esc(pads[0].id.slice(0, 60))}</div>`
+    : EMBEDDED ? `<div style="margin-top:12px;color:#c08050">Playing with keyboard and mouse. A controller works too: press any button on it.</div>`
     : `<div style="margin-top:12px;color:#c08050">No controller detected yet. Press any button on the controller. If nothing happens, see the controller section in LEESMIJ.txt.</div>`;
-  openDialog('Controls', html + status + `<div style="margin-top:6px;color:var(--muted);font-size:14px">Touch: tap to walk and attack, use the buttons at the top left, ✕ closes a window.</div>`, [{ label: 'Back', fn: () => popPanel() }]);
+  openDialog('Controls', html + status + `<div style="margin-top:6px;color:var(--muted);font-size:14px">Touch: tap to walk and attack, use the buttons at the top left, ✕ closes a window.</div>`, [{ label: 'Back', fn: () => popPanel() }], { onClose: () => { if (Game.titleEl && Game.state === 'title') Game.titleEl.style.display = ''; } }).el.style.cssText += ';bottom:auto;top:50%;transform:translate(-50%,-50%);max-height:96vh;overflow-y:auto';
 }
 function openCredits() {
   openDialog('Credits', `<div class="credits">Ravenhollow — Beneath the Ashen Chapel<br>A love letter to the dark, gothic action-RPGs of the late nineties.<br><br>Every character, monster, wall and candle was modelled as signed-distance shapes in code and pre-rendered from sixteen directions, then lit again in real time.<br><br>The music is composed generatively and performed on recordings from the Versilian Community Sample Library and VSCO 2 Community Edition (CC0). Sound effects are designed from those recordings and from synthesis.<br><br>Voices: Kokoro-82M neural speech (Apache 2.0)<br>Design, code, art, sound and music: made with Claude</div>`, [{ label: 'Back', fn: () => popPanel() }]);
