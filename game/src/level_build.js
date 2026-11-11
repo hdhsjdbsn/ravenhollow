@@ -10,7 +10,7 @@ const KITS = {
 // colour, light and grade per zone
 const LOOK = {
   // dusk, after the key art: a dying orange sun low in the west rakes the gables, cold slate everywhere it cannot reach
-  town: { amb: [0.1, 0.15, 0.25], sun: [2.8, 1.5, 0.75], sunDir: [0.3, 0.5, 0.82], fog: 0.0016, fogTop: 4, fogCol: [0.016, 0.017, 0.024], mist: 0.9, grime: 0.6, wet: 0.6, sat: 0.84, gain: [1.02, 1.0, 0.98], lift: [0.0, 0.002, 0.005], expo: 0.95, lantern: [1, 0.68, 0.38, 4.5, 7], v2: 1, bloom: 0.8, sharp: 0.28 },
+  town: { amb: [0.85, 0.9, 1.08], sun: [3.6, 1.6, 0.7], sunDir: [0.3, 0.42, 0.86], fog: 0.004, fogTop: 4, fogCol: [0.1, 0.095, 0.1], mist: 1.5, grime: 0.6, wet: 0.6, sat: 0.72, gain: [1.03, 1.0, 0.97], lift: [0.004, 0.003, 0.004], expo: 1.0, lantern: [1, 0.68, 0.38, 3.5, 6], v2: 1, bloom: 0.7, sharp: 0.28, lightK: 0.7, vig: 0.3 },
   // v2 look (2026-11-10, rolled out from the graphics test room): cold near-black shadows, ember lights, wet stone,
   // surface detail, no posterising. 'lightK' scales the level's own torches and braziers.
   abbey: { amb: [0.03, 0.033, 0.042], fog: 0.002, fogTop: 3.4, fogCol: [0.005, 0.005, 0.006], mist: 0.6, grime: 0.6, wet: 0.35, sat: 0.82, gain: [1.02, 1.0, 0.96], lift: [0.0, 0.0015, 0.003], expo: 0.9, lantern: [1, 0.66, 0.36, 5.5, 8], v2: 1, bloom: 0.8, sharp: 0.28, lightK: 0.7 },
@@ -22,6 +22,7 @@ function applyLook(name) {
   const L = LOOK[name] || LOOK.abbey, S = GFX.S;
   S.amb = L.amb; S.sun = L.sun || [0, 0, 0]; S.sunDir = L.sunDir || [0.4, 0.8, 0.3]; S.fog = L.fog; S.fogTop = L.fogTop; S.fogCol = L.fogCol; S.mist = L.mist; S.grime = L.grime; S.wet = L.wet;
   S.sat = L.sat; S.gain = L.gain; S.lift = L.lift; S.expo = L.expo * (G.settings.brightness || 1);
+  if (S.vig0 === undefined) S.vig0 = S.vig; S.vig = L.vig ?? S.vig0;
   S.v2 = L.v2 || 0; S.bloom = L.bloom ?? 0.45; S.sharp = L.sharp ?? 0.5; S.dither = L.v2 ? 0 : 52;   // v2: smooth gradients, no posterising
 }
 function pickW(R, list) { let tot = 0; for (const e of list) tot += e[1]; let x = R() * tot; for (const e of list) { x -= e[1]; if (x <= 0) return e[0]; } return list[0][0]; }
