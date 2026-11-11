@@ -256,7 +256,7 @@ class Hero extends Actor {
     if (B.kind === 'tome') {
       const sk = SKILLS[it.skill];
       if (!sk || sk.cls !== this.cls) { UI.msg('The words in this tome mean nothing to you.', '#c06040'); return; }
-      if (this.lvl < sk.reqLevel) { UI.msg(`You must be level ${sk.reqLevel} to learn this.`, '#c06040'); return; }
+      if (this.lvl < sk.reqLevel) { UI.msg(`You must be level ${sk.reqLevel} to read this tome. You are level ${this.lvl}.`, '#ff7050'); SFX.play('error'); return; }
       this.skills[it.skill] = (this.skills[it.skill] || 0) + 1; this.autoSlot();
       UI.msg(`${sk.name} is now rank ${this.skills[it.skill]}.`, '#e09040'); SFX.play('levelup');
       this.inv[i] = null; return;
@@ -663,8 +663,11 @@ function applyDamage(t, dmg, src, opts = {}) {
   if (isHero) { R3.camShake = Math.max(R3.camShake, clamp(total / t.maxHp * 4, 0.1, 0.8)); vibrate(0.4 + clamp(total / t.maxHp, 0, 0.6), 0.3, 140); }
   // hit recovery / stun
   if (t.hp > 0 && (total >= t.maxHp / (isHero ? 10 : 8) || opts.stun) && !t.boss) {
-    if (!(t.T && t.T.heavy) || opts.stun) {
-      t.stun = Math.max(t.stun, opts.stun || 0.25);
+    // A foe flinches at most once every 1.4 s, and not at all once its own blow is under way (unless the hit
+    // stuns outright): otherwise a fast weapon holds it frozen in place and it never fights back.
+    const tNow = performance.now() / 1000, winding = !isHero && t.action && t.action.anim !== 'hit';
+    if ((!(t.T && t.T.heavy) || opts.stun) && (isHero || opts.stun || (!winding && tNow - (t.flinchT || 0) > 1.4))) {
+      t.stun = Math.max(t.stun, opts.stun || (isHero ? 0.25 : 0.18)); t.flinchT = tNow;
       if (t.action && !isHero) t.action = null;
       if (t.vis && (!isHero || !t.action)) t.vis.play('hit', 0.28, true);
     }

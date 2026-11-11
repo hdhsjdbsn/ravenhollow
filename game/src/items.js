@@ -239,7 +239,11 @@ function itemTooltip(it, hero) {
   if (B.light) L.push({ text: `Light Radius +${B.light}%  ·  Fire Spells +${B.spell}%`, color: 'var(--muted)' });
   if (B.kind === 'potion') L.push({ text: B.effect === 'heal' ? `Restores ${Math.round(B.amount * 100)}% Life` : B.effect === 'mana' ? `Restores ${Math.round(B.amount * 100)}% ${G.settings.lantern !== false ? 'Lantern Fire' : 'Mana'}` : B.effect === 'both' ? `Restores ${Math.round(B.amount * 100)}% Life and Mana` : `Permanently +1 ${({ str: 'Strength', dex: 'Dexterity', mag: 'Magic', vit: 'Vitality' })[B.effect]}`, color: 'var(--muted)' });
   if (B.kind === 'scroll') L.push({ text: B.effect === 'portal' ? 'Opens a portal back to Ravenhollow' : 'Reveals the powers of a magic item', color: 'var(--muted)' });
-  if (it.kind === 'tome') L.push({ text: 'Read to learn or improve this skill', color: 'var(--muted)' });
+  if (it.kind === 'tome') {
+    L.push({ text: 'Read to learn or improve this skill', color: 'var(--muted)' });
+    const rq = SKILLS[it.skill] ? SKILLS[it.skill].reqLevel : 0, lv = typeof WORLD !== 'undefined' && WORLD.hero ? WORLD.hero.lvl : 99;
+    if (rq > 1) L.push({ text: `Requires level ${rq}` + (lv < rq ? ` (you are level ${lv})` : ''), color: lv < rq ? '#ff5040' : 'var(--muted)' });
+  }
   if (it.qty > 1 && it.kind !== 'gold') L.push({ text: `Quantity: ${it.qty}`, color: 'var(--muted)' });
   // requirements
   const req = B.req || {};

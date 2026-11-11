@@ -74,13 +74,15 @@ function applyVigilSettings() {
   updateLantern = function (H) {
     if (!vLantern() || WORLD.depth === 0) { _ul(H); return; }
     const f = clamp(H.mana / Math.max(1, H.maxMana), 0, 1);
-    const k = VIG.shut ? 0.2 : 0.26 + 0.74 * Math.pow(f, 0.7);
+    const k = VIG.shut ? 0.12 : 0.26 + 0.74 * Math.pow(f, 0.7);
     const lm = H.lightMul; H.lightMul = (lm || 1) * k;
     _ul(H);
     H.lightMul = lm;
-    if (Game.lantern) Game.lantern.intensity *= VIG.shut ? 0.35 : 0.4 + 0.6 * k;
+    // shuttered means dark: no lantern light at all, only a breath of fill so the Penitent can still be found
+    if (Game.lantern) Game.lantern.intensity *= VIG.shut ? 0 : 0.4 + 0.6 * k;
+    if (VIG.shut && GFX.S.fillC) GFX.S.fillC = GFX.S.fillC.map(v => v * 0.3);
     const fl = FX.extraFlames && FX.extraFlames[0];
-    if (fl) { fl.w *= VIG.shut ? 0.4 : 0.5 + 0.6 * k; fl.h *= VIG.shut ? 0.4 : 0.5 + 0.6 * k; fl.glow *= VIG.shut ? 0.2 : k; }
+    if (fl) { fl.w *= VIG.shut ? 0.4 : 0.5 + 0.6 * k; fl.h *= VIG.shut ? 0.4 : 0.5 + 0.6 * k; fl.glow *= VIG.shut ? 0 : k; if (VIG.shut) { fl.w = 0; fl.h = 0; } }
   };
   // the dark: harder, faster foes; better spoils
   const _sm = Monster.prototype.speedMul;
@@ -268,12 +270,12 @@ function vGhost(H) {
       }
       // guard: blows wear it down; it comes back after a few quiet seconds
       if (t.alive && !execute) {
-        const max = t.T.boss ? 24 : (t.T.heavy ? 6 : 3) * (t.champion ? 1.6 : 1);
-        if (t.vigPoise === undefined || VIG.now - (t.vigPoiseT || 0) > 3) t.vigPoise = max;
+        const max = t.T.boss ? 26 : (t.T.heavy ? 9 : 5) * (t.champion ? 1.6 : 1);
+        if (t.vigPoise === undefined || VIG.now - (t.vigPoiseT || 0) > 2) t.vigPoise = max;
         t.vigPoiseT = VIG.now;
         t.vigPoise -= (opts.crit ? 2 : 1) + (opts.stun ? 1 : 0) + (total > t.maxHp * 0.15 ? 1 : 0);
         if (t.vigPoise <= 0) {
-          t.vigPoise = max; t.vigStag = t.T.boss ? 1.1 : 1.7; t.stun = Math.max(t.stun, t.vigStag); t.action = null;
+          t.vigPoise = max; t.vigStag = t.T.boss ? 1.0 : 1.2; t.stun = Math.max(t.stun, t.vigStag); t.action = null;
           if (t.vis) t.vis.play('hit', 0.5, true);
           UI.floatText(t.x, 2.0 + (t.T.boss ? 1 : 0), t.z, 'Staggered', '#f0c060'); SFX.play('block', { x: t.x, z: t.z, vol: 0.8, rate: 0.7 });
         }
@@ -436,8 +438,8 @@ function vExecuteFx(t, kill) {
 // ------------------------------------------------------------------ difficulty (Options): Pilgrim = the old balance
 const DIFF = {
   pilgrim:  { name: 'Pilgrim',  dmg: [1, 1], hp: 1, tohit: 0, cd: 1, extra: 0 },
-  penitent: { name: 'Penitent', dmg: [1.6, 1.35], hp: 1.2, tohit: 10, cd: 1.2, extra: 0.25 },
-  martyr:   { name: 'Martyr',   dmg: [2.2, 1.8], hp: 1.45, tohit: 18, cd: 1.35, extra: 0.45 },
+  penitent: { name: 'Penitent', dmg: [1.85, 1.5], hp: 1.35, tohit: 12, cd: 1.45, extra: 0.35 },
+  martyr:   { name: 'Martyr',   dmg: [2.5, 2.0], hp: 1.65, tohit: 20, cd: 1.7, extra: 0.55 },
 };
 const vDiff = () => DIFF[G.settings.difficulty] || DIFF.penitent;
 {

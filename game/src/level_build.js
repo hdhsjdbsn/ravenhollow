@@ -10,7 +10,7 @@ const KITS = {
 // colour, light and grade per zone
 const LOOK = {
   // dusk, after the key art: a dying orange sun low in the west rakes the gables, cold slate everywhere it cannot reach
-  town: { amb: [0.85, 0.9, 1.08], sun: [3.6, 1.6, 0.7], sunDir: [0.3, 0.42, 0.86], fog: 0.004, fogTop: 4, fogCol: [0.1, 0.095, 0.1], mist: 1.5, grime: 0.6, wet: 0.6, sat: 0.72, gain: [1.03, 1.0, 0.97], lift: [0.004, 0.003, 0.004], expo: 1.0, lantern: [1, 0.68, 0.38, 3.5, 6], v2: 1, bloom: 0.7, sharp: 0.28, lightK: 0.7, vig: 0.3, vista: [8.5, 0.6, 8.5, 1.5], camBack: 6 },
+  town: { amb: [0.8, 0.86, 1.04], sun: [2.5, 1.02, 0.44], sunDir: [0.3, 0.42, 0.86], fog: 0.004, fogTop: 4, fogCol: [0.1, 0.095, 0.1], mist: 1.5, grime: 0.7, wet: 0.75, sat: 0.58, gain: [1.0, 0.99, 1.0], lift: [0.003, 0.003, 0.005], expo: 0.83, lantern: [1, 0.68, 0.38, 3.5, 6], v2: 1, bloom: 0.7, sharp: 0.28, lightK: 0.7, vig: 0.3, vista: [8.5, 0.6, 8.5, 1.5], camBack: 6 },
   // v2 look (2026-11-10, rolled out from the graphics test room): cold near-black shadows, ember lights, wet stone,
   // surface detail, no posterising. 'lightK' scales the level's own torches and braziers.
   abbey: { amb: [0.03, 0.033, 0.042], fog: 0.002, fogTop: 3.4, fogCol: [0.005, 0.005, 0.006], mist: 0.6, grime: 0.6, wet: 0.35, sat: 0.82, gain: [1.02, 1.0, 0.96], lift: [0.0, 0.0015, 0.003], expo: 0.9, lantern: [1, 0.66, 0.36, 5.5, 8], v2: 1, bloom: 0.8, sharp: 0.28, lightK: 0.7 },
@@ -117,8 +117,9 @@ Level.prototype.decorate = function () {
   // stairs
   if (this.stairsUp) {
     const [sx, sz] = this.stairsUp;
-    this.place(K.caves ? C : set, 'stairs_up', 0, sx + 1, sz + 1, { block: true, cells: [[sx, sz], [sx + 1, sz]], h: 2.5, hw: 0.9 });
-    this.lightSrc.push({ x: sx + 1, y: 2, z: sz + 2, color: 0xa0b8ff, intensity: 3, radius: 5, priority: 0 });
+    this.place(K.caves ? C : set, 'stairs_up', 0, sx + 1, sz + 1, { block: true, cells: [[sx, sz], [sx + 1, sz]] });
+    this.occRect(sx + 0.05, sz - 0.05, sx + 1.95, sz + 0.3, 2.8);   // only the door wall throws shadow: the flight in front of it must take light
+    this.lightSrc.push({ x: sx + 1, y: 1.6, z: sz + 2.2, color: 0xa0b8ff, intensity: 5.5, radius: 6, priority: 0 });
   }
   if (this.stairsDown) {
     const [sx, sz] = this.stairsDown;

@@ -331,7 +331,8 @@ function showTip(it) {
 function hideTip() { UI.tip.style.display = 'none'; UI.tip2.style.display = 'none'; }
 
 // ---------------- item slot element ----------------
-const DOLL_SVG = `<svg class="doll" viewBox="0 0 440 470" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="dg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a443e"/><stop offset="1" stop-color="#24211e"/></linearGradient><radialGradient id="dh" cx="50%" cy="42%" r="55%"><stop offset="0" stop-color="rgba(170,120,70,.26)"/><stop offset="1" stop-color="rgba(0,0,0,0)"/></radialGradient></defs><rect width="440" height="470" fill="url(#dh)"/><path d="M220 8 C196 8 182 30 182 56 C182 70 186 82 192 90 L160 100 C140 104 128 116 124 134 L100 250 C96 264 98 280 106 286 C116 290 124 284 128 272 L150 170 L158 240 L134 392 L196 396 L194 440 L180 452 L180 460 L214 460 L216 398 L220 396 L224 398 L226 460 L260 460 L260 452 L246 440 L244 396 L306 392 L282 240 L290 170 L312 272 C316 284 324 290 334 286 C342 280 344 264 340 250 L316 134 C312 116 300 104 280 100 L248 90 C254 82 258 70 258 56 C258 30 244 8 220 8 Z" fill="url(#dg)" stroke="rgba(205,182,144,.6)" stroke-width="1.6" stroke-linejoin="round"/><ellipse cx="220" cy="58" rx="17" ry="22" fill="#060606"/><path d="M160 238 Q220 252 280 238" fill="none" stroke="rgba(190,168,132,.22)" stroke-width="3"/><path d="M220 100 L220 392 M192 250 L176 390 M248 250 L264 390" fill="none" stroke="rgba(0,0,0,.45)" stroke-width="2"/></svg>`;
+// the figure behind the equipment slots: the front view from the Penitent's concept sheet (assets/doll.webp)
+const DOLL_SVG = '<img class="doll" src="assets/doll.webp" alt="">';
 function itemCell(it, cls = 'cell') {
   const e = $('div', cls);
   if (it) {
@@ -414,7 +415,7 @@ function openHeroScreen(focusInv) {
     const eq = $('div', 'equip', invCol);
     // paper doll: the slots sit on a silhouette of the Penitent (left/top of each 52 px slot inside the 326 x 348 figure)
     eq.innerHTML = DOLL_SVG;
-    const pos = { head: [137, 11], neck: [196, 26], body: [137, 96], hands: [69, 138], ring1: [205, 138], ring2: [259, 138], main: [33, 203], off: [240, 203], feet: [137, 288] };
+    const pos = { head: [137, 6], neck: [200, 30], body: [137, 98], hands: [60, 150], ring1: [214, 150], ring2: [268, 150], main: [26, 216], off: [248, 216], feet: [137, 292] };
     for (const s of SLOTS) {
       const it = H.equip[s];
       const c = itemCell(it, 'cell eslot' + (it ? '' : ' empty')); c.style.left = pos[s][0] + 'px'; c.style.top = pos[s][1] + 'px';
