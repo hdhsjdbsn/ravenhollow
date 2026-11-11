@@ -158,7 +158,7 @@ function update(dt) {
     if (pressed('view') || pressed('char')) openHeroScreen();
     else if (!window.ACTION && (pressed('skills') || pressed('left'))) openSkills();   // the action fork has no skill tree: the d-pad does nothing in play
     else if (pressed('menu') && !(typeof ACT !== 'undefined' && ACT.setup) && !(typeof PADT !== 'undefined' && PADT.setup)) openPause();
-    else if (!window.ACTION && (pressed('up') || pressed('map'))) { UI.mapMode = (UI.mapMode + 1) % 3; SFX.play('menuMove'); }
+    else if (!window.ACTION && (pressed('up') || pressed('map'))) cycleMap();
     else if (!window.ACTION && pressed('down')) { UI.labelsOn = !UI.labelsOn; }
   }
 }

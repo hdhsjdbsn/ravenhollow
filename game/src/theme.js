@@ -58,7 +58,7 @@ body{color:var(--text)}
 .mopt.disabled{color:var(--ash-dim)}
 .mslider .sv{color:var(--ember)}
 .badge{background:var(--blood);color:var(--bone-hi);box-shadow:0 0 6px rgba(160,30,10,.6)}
-.equip{background:radial-gradient(ellipse at center,rgba(70,70,74,.18),rgba(0,0,0,0) 70%)}
+.cell.eslot.empty{background:rgba(6,6,7,.42);border:1px dashed #5a544c;box-shadow:none}.eslot.empty .slabel{color:#8a8072}
 .cell{background:#09090a url(${A}cellbg.webp) center/cover;border:1px solid #232223;box-shadow:inset 0 0 12px #000,0 1px 0 rgba(255,255,255,.03)}
 .cell.magic{background:radial-gradient(circle,rgba(50,70,170,.32),transparent 70%),#09090a url(${A}cellbg.webp) center/cover}
 .cell.unique{background:radial-gradient(circle,rgba(190,140,50,.34),transparent 70%),#09090a url(${A}cellbg.webp) center/cover;border-color:#5a4a26}

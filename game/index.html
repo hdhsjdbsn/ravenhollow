@@ -112,12 +112,14 @@ html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
 .srow span { color: var(--muted); }
 .pbtn { margin-top: 14px; text-align: center; padding: 8px; border: 1px solid #5a4428; background: #1a120a; color: var(--gold); font-variant: small-caps; font-size: 18px; }
 .badge { background: #a02010; color: #fff; border-radius: 10px; padding: 0 7px; font-size: 13px; }
-.equip { display: grid; grid-template-columns: repeat(3, 72px); grid-template-rows: repeat(4, 72px); gap: 6px; justify-content: center; margin-bottom: 12px; padding: 10px; background: radial-gradient(ellipse at center, rgba(60,40,20,0.35), rgba(0,0,0,0)); }
+.equip { position: relative; width: 326px; height: 348px; margin: 0 auto 10px; }
+.equip .doll { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .grid { display: grid; grid-template-columns: repeat(10, 54px); gap: 4px; }
 .vgrid { grid-template-columns: repeat(6, 64px); }
 .vgrid .cell { width: 64px; height: 64px; }
 .cell { width: 54px; height: 54px; background: #0b0806 url(assets/cellbg.webp) center/cover; border: 1px solid #3a2a18; position: relative; box-shadow: inset 0 0 10px #000; }
-.eslot { width: 72px; height: 72px; }
+.eslot { position: absolute; width: 52px; height: 52px; }
+.cell.eslot.empty { background: rgba(6,6,7,0.5); border-style: dashed; box-shadow: none; }
 .cell img { width: 100%; height: 100%; object-fit: contain; display: block; filter: drop-shadow(0 2px 2px #000); }
 .cell.magic { background: radial-gradient(circle, rgba(40,60,160,0.35), transparent 70%), #0b0806 url(assets/cellbg.webp) center/cover; }
 .cell.unique { background: radial-gradient(circle, rgba(170,130,40,0.4), transparent 70%), #0b0806 url(assets/cellbg.webp) center/cover; border-color: #6a5020; }
