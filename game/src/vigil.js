@@ -438,8 +438,8 @@ function vExecuteFx(t, kill) {
 // ------------------------------------------------------------------ difficulty (Options): Pilgrim = the old balance
 const DIFF = {
   pilgrim:  { name: 'Pilgrim',  dmg: [1, 1], hp: 1, tohit: 0, cd: 1, extra: 0 },
-  penitent: { name: 'Penitent', dmg: [1.85, 1.5], hp: 1.35, tohit: 12, cd: 1.45, extra: 0.35 },
-  martyr:   { name: 'Martyr',   dmg: [2.5, 2.0], hp: 1.65, tohit: 20, cd: 1.7, extra: 0.55 },
+  penitent: { name: 'Penitent', dmg: [1.6, 1.35], hp: 1.2, tohit: 10, cd: 1.2, extra: 0.25 },
+  martyr:   { name: 'Martyr',   dmg: [2.2, 1.8], hp: 1.45, tohit: 18, cd: 1.35, extra: 0.45 },
 };
 const vDiff = () => DIFF[G.settings.difficulty] || DIFF.penitent;
 {
