@@ -2,7 +2,7 @@
 // User interface: HUD, panels with controller focus navigation, tooltips, automap.
 
 const UI = {
-  root: null, stack: [], target: null, targetFade: 0, msgs: [], floats: [], labelsOn: false, mapMode: 0,
+  root: null, stack: [], target: null, targetFade: 0, msgs: [], floats: [], labelsOn: false, mapMode: 2,
   identifyMode: -1, hud: null,
 };
 const $ = (tag, cls, parent, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html !== undefined) e.innerHTML = html; if (parent) parent.appendChild(e); return e; };
@@ -205,14 +205,16 @@ function updatePrompt() {
 }
 
 // ---------------- automap ----------------
-function cycleMap() { UI.mapMode = (UI.mapMode + 1) % 3; SFX.play('menuMove'); }
+// The round minimap (mode 2) is on from the start and stays in the top right corner; the map button only swaps it for
+// the large overlay (mode 1) and back, so there is always a map on screen.
+function cycleMap() { UI.mapMode = UI.mapMode === 1 ? 2 : 1; SFX.play('menuMove'); }
 function drawAutomap() {
   const c = UI.map, x = c.getContext('2d'), L = WORLD.level, H = WORLD.hero; if (!L || !H) return;
   UI._mapDrawn = true;
   x.clearRect(0, 0, c.width, c.height);
   const full = UI.mapMode === 1;
   const sc = full ? Math.min(c.width, c.height) / 70 : 4.2;
-  const ox = full ? c.width / 2 : c.width - 150, oy = full ? c.height / 2 : 140;
+  const ox = full ? c.width / 2 : c.width - 150, oy = full ? c.height / 2 : 166;   // below the line of key hints in the corner
   if (!full) { x.fillStyle = 'rgba(0,0,0,0.55)'; x.beginPath(); x.arc(ox, oy, 120, 0, TAU); x.fill(); x.save(); x.beginPath(); x.arc(ox, oy, 118, 0, TAU); x.clip(); }
   // iso projection: world (x,z) -> screen
   const P = (wx, wz) => [ox + (wx - H.x - (wz - H.z)) * sc * 0.7071 * 1.4, oy + (wx - H.x + (wz - H.z)) * sc * 0.7071 * 0.7];
@@ -366,7 +368,7 @@ function tabStrip(p, kind) {
 }
 function openMapPanel() {
   const prev = UI.mapMode;
-  const p = new Panel('mappanel', { viewCloses: true, onClose: () => { UI.mapMode = prev === 1 ? 0 : prev; } });
+  const p = new Panel('mappanel', { viewCloses: true, onClose: () => { UI.mapMode = 2; } });
   UI.mapMode = 1;
   tabStrip(p, 'map');
   $('div', 'mapkey', p.el, `<span><i style="background:#fff"></i>You</span><span><i style="background:#f0d060"></i>Villagers</span><span><i style="background:#ff4030"></i>Way down</span><span><i style="background:#40ff60"></i>Way up</span><span><i style="background:#6080ff"></i>Portal</span>`);

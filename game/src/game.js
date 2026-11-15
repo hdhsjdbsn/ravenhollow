@@ -138,7 +138,7 @@ function update(dt) {
     { const L = WORLD.level, cb = L && !L.showcase && LOOK[L.zoneName] && LOOK[L.zoneName].camBack || 0; Game.camBack = (Game.camBack ?? cb) + (cb - (Game.camBack ?? cb)) * 0.05;
       setCameraTarget(H.x - Game.camBack * 0.7071, 0, H.z - Game.camBack * 0.7071); }
     updateLantern(H);
-    if (G.frame % 15 === 0) updateExplored();
+    if (G.frame % 15 === 0 || (WORLD.level && !WORLD.level._mapSeen)) { updateExplored(); if (WORLD.level) WORLD.level._mapSeen = true; }   // the minimap is filled from the first frame on a level
     if (WORLD.depth === 0 && Math.random() < dt * 4) FX.soft.emit({ x: H.x + rand.range(-13, 13), y: 0.18, z: H.z + rand.range(-13, 13), vx: 0.18, vy: 0.01, vz: 0.06, c: [0.46, 0.44, 0.5], life: 8, s: 1.8, s2: 3.2, a: 0.08 });
     else if (WORLD.depth > 0 && Math.random() < dt * 2.2) {
       const mx = H.x + rand.range(-9, 9), mz = H.z + rand.range(-9, 9);
