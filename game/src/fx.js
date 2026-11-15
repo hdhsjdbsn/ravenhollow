@@ -22,7 +22,7 @@ class Pool {
 FX.soft = new Pool(700, true);
 FX.add = new Pool(1400, false);
 function initFX() { }
-function fxClearLevel() { FX.soft.clear(); FX.add.clear(); FX.decals = []; FX.fires = []; }
+function fxClearLevel() { FX.soft.clear(); FX.add.clear(); FX.decals = []; FX.fires = []; for (const p of FX.pulses || []) removeLight(p.l); FX.pulses = []; FX.later = []; }
 const PPMf = 64;
 function fxBlood(x, y, z, n = 14, dir = null, col = [0.32, 0.02, 0.015]) {
   for (let i = 0; i < n; i++) {
@@ -75,6 +75,83 @@ function fxImpact(x, y, z, big) {
   FX.flashL.x = x; FX.flashL.y = y; FX.flashL.z = z; FX.flashL.intensity = big ? 6 : 4; R3.lightSources.add(FX.flashL);
   FX.freeze = Math.max(FX.freeze, big ? 0.075 : 0.05);
 }
+// ---------------------------------------------------------------- feedback effects (2026-11-15)
+// Blows given and taken, potions, kills and pick-ups each answer with something you can see: a cut of light across the
+// foe, a red bite at the screen's edge, motes winding up around the Penitent. All of it is short, so it never hides the fight.
+FX.pulses = []; FX.later = [];
+// a coloured glow at the edges of the screen that fades out (col = [r,g,b] 0..1)
+function fxScreen(col, a = 0.4, dur = 0.5) {
+  if (!FX.scr) {
+    FX.scr = document.createElement('div');
+    FX.scr.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:9;opacity:0;mix-blend-mode:screen';
+    (document.getElementById('ui') || document.body).appendChild(FX.scr);
+  }
+  const c = col.map(v => Math.round(Math.min(1, v) * 255)).join(',');
+  FX.scr.style.background = `radial-gradient(ellipse at 50% 46%, rgba(${c},0) 42%, rgba(${c},0.55) 82%, rgba(${c},0.95) 100%)`;
+  if (FX.scrAnim) FX.scrAnim.cancel();
+  FX.scrAnim = FX.scr.animate([{ opacity: Math.min(0.95, a) }, { opacity: 0 }], { duration: dur * 1000, easing: 'ease-out' });
+}
+// a short-lived coloured light that fades by itself
+function fxPulse(x, y, z, color, intensity = 5, radius = 4, life = 0.45) {
+  const l = addLight({ x, y, z, color, intensity, radius, flicker: 0, priority: 3, noShadow: true, transient: true });
+  FX.pulses.push({ l, i0: intensity, life, max: life });
+}
+// the cut itself: a streak of light across the target, square to the direction of the blow
+function fxSlash(x, y, z, dx, dz, crit) {
+  const px = -dz, pz = dx, n = crit ? 20 : 12, len = crit ? 0.75 : 0.5, tilt = (Math.random() - 0.5) * 0.9;
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1) - 0.5, w = 1 - Math.abs(t) * 1.6;
+    FX.add.emit({ x: x + px * t * len * 2, y: y + t * tilt + 0.05, z: z + pz * t * len * 2, vx: px * t * 5 + dx * 0.6, vy: t * tilt * 4, vz: pz * t * 5 + dz * 0.6,
+      life: 0.13 + Math.random() * 0.07, s: (crit ? 0.11 : 0.075) * Math.max(0.3, w), s2: 0.01, c: crit ? [3.2, 2.6, 1.4] : [2.6, 2.2, 1.7], drag: 6 });
+  }
+  if (crit) { fxRing(x, z, [1, 0.8, 0.45], 0.9, 26, y - 0.1); fxPulse(x, y, z, 0xffc070, 7, 4.5, 0.3); }
+}
+// the Penitent strikes a foe
+function fxHitFoe(t, src, total, opts) {
+  const dx0 = t.x - src.x, dz0 = t.z - src.z, l = Math.hypot(dx0, dz0) || 1, dx = dx0 / l, dz = dz0 / l, sc = t.vis ? t.vis.scale : 1;
+  if (l < 3.2) fxSlash(t.x - dx * t.radius * 0.5, 1.0 * sc, t.z - dz * t.radius * 0.5, dx, dz, opts.crit);
+  const heavy = opts.crit || total >= t.maxHp * 0.3;
+  R3.camShake = Math.max(R3.camShake || 0, heavy ? 0.2 : 0.06);
+  if (heavy) for (let i = 0; i < 5; i++) FX.soft.emit({ x: t.x, y: 0.15, z: t.z, vx: (Math.random() - 0.5) * 2.2, vy: 0.3 + Math.random() * 0.5, vz: (Math.random() - 0.5) * 2.2, life: 0.7 + Math.random() * 0.5, s: 0.2, s2: 0.55, c: [0.3, 0.28, 0.25], a: 0.16, drag: 2.2 });
+}
+// a foe strikes the Penitent
+function fxHeroHurt(H, total) {
+  const f = Math.min(1, total / Math.max(1, H.maxHp)), low = H.hp < H.maxHp * 0.3;
+  fxScreen([0.75, 0.03, 0.02], 0.3 + f * 2.2 + (low ? 0.15 : 0), 0.45 + f * 1.2);
+  fxPulse(H.x, 1.1, H.z, 0xff3020, 3 + f * 10, 3.5, 0.25);
+  for (let i = 0; i < 6 + Math.round(f * 20); i++) { const a = Math.random() * TAU, sp = 1.5 + Math.random() * 2.5; FX.add.emit({ x: H.x, y: 1.1, z: H.z, vx: Math.cos(a) * sp, vy: Math.random() * 2, vz: Math.sin(a) * sp, life: 0.2 + Math.random() * 0.2, s: 0.035, c: [2.6, 0.35, 0.2], g: 6, drag: 3 }); }
+}
+// motes winding up around a body: potions, kindling, shrines (col = [r,g,b] 0..1, hex = the same as a light colour)
+function fxSwirl(t, col, hex, n = 34, dur = 0.7) {
+  for (let i = 0; i < n; i++) FX.later.push({ t: i / n * dur, fn: () => {
+    const a = i * 0.9 + Math.random() * 0.4, r = 0.42 + Math.random() * 0.12, w = 4.2;
+    FX.add.emit({ x: t.x + Math.cos(a) * r, y: 0.1 + Math.random() * 0.25, z: t.z + Math.sin(a) * r, vx: -Math.sin(a) * r * w, vy: 1.7 + Math.random() * 1.1, vz: Math.cos(a) * r * w,
+      life: 0.55 + Math.random() * 0.35, s: 0.09, s2: 0.015, c: [col[0] * 2.6, col[1] * 2.6, col[2] * 2.6], drag: 1.6 });
+  } });
+  fxRing(t.x, t.z, col, 0.75, 34, 0.08);
+  fxPulse(t.x, 1.0, t.z, hex, 6, 4.5, 0.8);
+}
+function fxPotion(H, kind, amount) {
+  const heal = kind === 'heal', col = heal ? [1, 0.16, 0.1] : [1, 0.62, 0.18], hex = heal ? 0xff3828 : 0xffa040;
+  fxSwirl(H, col, hex);
+  fxScreen(heal ? [0.7, 0.08, 0.05] : [0.75, 0.45, 0.1], 0.32, 0.8);
+  if (amount >= 1) UI.floatText(H.x, 2.1 + (heal ? 0 : 0.25), H.z, '+' + Math.round(amount), heal ? '#ff8070' : '#ffc070');
+  const o = heal ? UI.orbLWrap : UI.orbRWrap || null;
+  if (o && o.animate) o.animate([{ filter: 'brightness(2.1) saturate(1.4)', transform: 'scale(1.07)' }, { filter: 'brightness(1)', transform: 'scale(1)' }], { duration: 650, easing: 'ease-out' });
+}
+// a foe falls: dust rolls out along the floor, and what it was made of goes up
+function fxDeath(m) {
+  const big = m.T.boss ? 3 : m.champion ? 1.6 : 1;
+  for (let i = 0; i < 8 * big; i++) { const a = Math.random() * TAU, sp = 0.8 + Math.random() * 1.6; FX.soft.emit({ x: m.x, y: 0.12, z: m.z, vx: Math.cos(a) * sp, vy: 0.15 + Math.random() * 0.4, vz: Math.sin(a) * sp, life: 0.9 + Math.random() * 0.7, s: 0.22, s2: 0.7, c: [0.28, 0.26, 0.24], a: 0.17, drag: 1.9 }); }
+  if (m.T.undead) for (let i = 0; i < 10 * big; i++) FX.add.emit({ x: m.x + (Math.random() - 0.5) * 0.5, y: 0.5 + Math.random() * 0.9, z: m.z + (Math.random() - 0.5) * 0.5, vx: (Math.random() - 0.5) * 0.4, vy: 0.7 + Math.random() * 1.1, vz: (Math.random() - 0.5) * 0.4, life: 0.8 + Math.random() * 0.7, s: 0.06, s2: 0.01, c: [0.5, 0.9, 1.5], drag: 0.6 });
+  if (big > 1) { fxRing(m.x, m.z, [1, 0.6, 0.3], 1.4 * big, 40, 0.15); fxPulse(m.x, 1, m.z, 0xff9050, 8, 6, 0.5); R3.camShake = Math.max(R3.camShake || 0, 0.25 * big); }
+}
+// something picked up: a few sparks jump from the floor toward the hand
+function fxPickup(x, z, col) { for (let i = 0; i < 9; i++) FX.add.emit({ x: x + (Math.random() - 0.5) * 0.25, y: 0.1, z: z + (Math.random() - 0.5) * 0.25, vx: (Math.random() - 0.5) * 0.8, vy: 1.6 + Math.random() * 1.6, vz: (Math.random() - 0.5) * 0.8, life: 0.3 + Math.random() * 0.25, s: 0.05, s2: 0.008, c: [col[0] * 2.6, col[1] * 2.6, col[2] * 2.6], drag: 1.2 }); }
+function fxFeedbackUpdate(dt) {
+  for (let i = FX.pulses.length - 1; i >= 0; i--) { const p = FX.pulses[i]; p.life -= dt; p.l.intensity = p.i0 * Math.max(0, p.life / p.max); if (p.life <= 0) { removeLight(p.l); FX.pulses.splice(i, 1); } }
+  for (let i = FX.later.length - 1; i >= 0; i--) { const q = FX.later[i]; q.t -= dt; if (q.t <= 0) { FX.later.splice(i, 1); q.fn(); } }
+}
 // level fires: braziers, torches, candles (flames drawn by the renderer, embers + smoke here)
 function fxFire(f, dt) {
   const big = (f.size || 1) > 1.1;
@@ -87,7 +164,7 @@ function fxFire(f, dt) {
   if (big && Math.random() < dt * 6) FX.soft.emit({ x: f.x + (Math.random() - 0.5) * 0.25, y: f.y + 0.4, z: f.z + (Math.random() - 0.5) * 0.25, vx: (Math.random() - 0.5) * 0.15, vy: 0.45 + Math.random() * 0.35, vz: (Math.random() - 0.5) * 0.15, life: 3.5 + Math.random() * 2.5, s: 0.28, s2: 0.6, c: [0.05, 0.045, 0.04], a: 0.32, drag: 0.4, g: -0.05, smoke: true });
 }
 function updateFX(dt) {
-  FX.soft.update(dt); FX.add.update(dt);
+  FX.soft.update(dt); FX.add.update(dt); fxFeedbackUpdate(dt);
   for (const f of FX.fires) if (GFX.onScreen(f.x, f.y, f.z, 200)) fxFire(f, dt);
   if (FX.flashL) { FX.flashL.intensity = Math.max(0, FX.flashL.intensity - dt * 50); if (FX.flashL.intensity <= 0) R3.lightSources.delete(FX.flashL); }
 }

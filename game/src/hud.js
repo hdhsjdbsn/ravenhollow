@@ -47,7 +47,7 @@ function initPaintedHUD() {
     const fr = document.createElement('img'); fr.className = 'hframe'; fr.src = A + 'hud_orb.webp'; o.appendChild(fr);
     cv.className = 'hglobe'; cv.width = cv.height = 248; o.appendChild(cv);
     tx.className = 'hhp'; o.appendChild(tx);
-    if (side === 'l') UI.orbLWrap = o;
+    if (side === 'l') UI.orbLWrap = o; else UI.orbRWrap = o;
   }
   // painted draughts in the potion sockets
   try { UI.potPics = { red: itemIcon(makeItem('potHeal')), blue: itemIcon(makeItem('potMana')) }; } catch (e) { UI.potPics = null; }

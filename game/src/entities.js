@@ -204,6 +204,7 @@ class Hero extends Actor {
     SFX.play('levelup'); setTimeout(() => heroBark('levelup', 0), 1600);
     fxBurst(this.x, 1, this.z, [1, 0.85, 0.4], 60, 3, 0.15, 1.2);
     fxRing(this.x, this.z, [1, 0.8, 0.4], 1.2, 50, 0.1);
+    fxSwirl(this, [1, 0.85, 0.45], 0xffd070, 60, 1.2); fxScreen([0.8, 0.62, 0.25], 0.45, 1.4); fxRing(this.x, this.z, [1, 0.9, 0.6], 2.6, 70, 0.1);
     // newly unlocked skills
     for (const s of CLASS_SKILLS[this.cls]) if (SKILLS[s].reqLevel === this.lvl) UI.msg(`New skill available: ${SKILLS[s].name}`, '#e09040');
   }
@@ -265,8 +266,9 @@ class Hero extends Actor {
   }
   drinkPotion(it) {
     const B = BASES[it.base];
-    if (B.effect === 'heal' || B.effect === 'both') { this.hp = Math.min(this.maxHp, this.hp + this.maxHp * B.amount); fxBurst(this.x, 1, this.z, [1, 0.2, 0.15], 18, 1.5, 0.1, 0.7); }
-    if (B.effect === 'mana' || B.effect === 'both') { this.mana = Math.min(this.maxMana, this.mana + this.maxMana * B.amount); fxBurst(this.x, 1, this.z, [0.3, 0.4, 1], 18, 1.5, 0.1, 0.7); }
+    if (B.effect === 'heal' || B.effect === 'both') { const h0 = this.hp; this.hp = Math.min(this.maxHp, this.hp + this.maxHp * B.amount); fxPotion(this, 'heal', this.hp - h0); }
+    if (B.effect === 'mana' || B.effect === 'both') { const m0 = this.mana; this.mana = Math.min(this.maxMana, this.mana + this.maxMana * B.amount); fxPotion(this, 'fire', this.mana - m0); }
+    if (['str', 'dex', 'mag', 'vit'].includes(B.effect)) { fxSwirl(this, [1, 0.85, 0.45], 0xffd070, 44, 0.9); fxScreen([0.7, 0.55, 0.2], 0.3, 0.9); }
     if (['str', 'dex', 'mag', 'vit'].includes(B.effect)) { this.base[B.effect]++; this.recalc(); UI.msg(`You feel ${({ str: 'stronger', dex: 'more agile', mag: 'wiser', vit: 'more vigorous' })[B.effect]}.`, '#f0d290'); }
     SFX.play('drink');
   }
@@ -585,6 +587,7 @@ class Monster extends Actor {
     if (this.T.model !== 'skeleton' && this.T.model !== 'wraith' && this.T.model !== 'golem') fxDecal('blood', this.x, this.z, rand.range(0.9, 1.6) * (this.T.boss ? 2 : 1));
     if (this.T.model === 'wraith') fxBurst(this.x, 1, this.z, [0.4, 0.6, 1], 40, 2, 0.18, 1.2);
     if (H) H.gainXp(this.xpVal * (1 + Math.max(0, (this.mlvl - H.lvl)) * 0.05) * (H.lvl > this.mlvl + 10 ? 0.2 : 1));
+    fxDeath(this);
     dropLoot(this);
     if (this.T.onDeath === 'poisonCloud') spawnEffect('poisonCloud', this.x, this.z, { dmg: this.dmg[1] * 0.5, owner: this });
     if (this.champion && this.champion.mods.includes('fire')) spawnEffect('explode', this.x, this.z, { dmg: this.dmg[1], owner: this, col: [1, 0.5, 0.1] });
@@ -660,6 +663,7 @@ function applyDamage(t, dmg, src, opts = {}) {
     if (dmg.light > 0) fxSparks(t.x, 1, t.z, 10, [0.7, 0.8, 1]);
     if (G.settings.showDamage || opts.crit) floatText(t, (opts.crit ? 'Critical ' : '') + total, isHero ? '#ff6050' : opts.crit ? '#ffd040' : '#f0e0c0');
   }
+  if (total > 0 && isHero) fxHeroHurt(t, total); else if (total > 0 && src === WORLD.hero) fxHitFoe(t, src, total, opts);
   if (isHero) { R3.camShake = Math.max(R3.camShake, clamp(total / t.maxHp * 4, 0.1, 0.8)); vibrate(0.4 + clamp(total / t.maxHp, 0, 0.6), 0.3, 140); }
   // hit recovery / stun
   if (t.hp > 0 && (total >= t.maxHp / (isHero ? 10 : 8) || opts.stun) && !t.boss) {
@@ -943,6 +947,7 @@ function pickupDrop(d) {
   const H = WORLD.hero;
   const it = d.it;
   if (!H.addItem(it)) return false;
+  { const H = WORLD.hero; if (H) fxPickup(H.x, H.z, it.kind === 'gold' ? [1, 0.8, 0.3] : it.rarity === 3 ? [1, 0.6, 0.25] : it.rarity === 2 ? [1, 0.95, 0.4] : it.rarity === 1 ? [0.45, 0.6, 1] : [0.8, 0.78, 0.7]); }
   if (it.kind === 'gold') { SFX.play('gold'); UI.msg(`+${fmtNum(it.qty)} gold`, '#e8c860'); }
   else { SFX.play('pickup'); UI.msg(itemName(it), itemColor(it).startsWith('var') ? null : itemColor(it), false, it); }
   removeDrop(d);

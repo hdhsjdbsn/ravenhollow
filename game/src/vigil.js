@@ -149,6 +149,7 @@ function vHarvest(m, src) {
     if (o.light) o.light.intensity = 0;
     SFX.play('shrine', { x: o.x, z: o.z }); vibrate(0.25, 0.4, 120);
     vWisps(o.x, o.z, 10, H.maxMana);   // the whole flame, carried over in embers
+    fxSwirl(H, [1, 0.62, 0.18], 0xffa040, 50, 1.0); fxScreen([0.75, 0.45, 0.1], 0.35, 1.0);
     if (VIG.shut) VIG.shut = false;
     UI.msg('You kindle the lantern at the votive candles.', '#f0c070', true);
   };
