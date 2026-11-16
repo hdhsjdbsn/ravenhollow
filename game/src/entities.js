@@ -843,7 +843,7 @@ function updateEffects(dt) {
       e.tick -= dt; if (e.tick <= 0) { e.tick = 0.5; const H = WORLD.hero; if (H && H.alive && Math.hypot(H.x - e.x, H.z - e.z) < 1.6) applyDamage(H, { poison: e.o.dmg }, e.o.owner, {}); }
     }
     if (e.kind === 'firewall') {
-      for (const pt of e.o.points) if (Math.random() < dt * 14) FX.add.emit({ x: pt[0] + (Math.random() - 0.5) * 0.4, y: 0.1, z: pt[1] + (Math.random() - 0.5) * 0.4, vx: 0, vy: 1.4 + Math.random(), vz: 0, c: [1, 0.6, 0.2], c2: [0.6, 0.05, 0], life: 0.6, s: 0.3, s2: 0.06, a: 0.9 });
+      if (!e.o.quiet) for (const pt of e.o.points) if (Math.random() < dt * 14) FX.add.emit({ x: pt[0] + (Math.random() - 0.5) * 0.4, y: 0.1, z: pt[1] + (Math.random() - 0.5) * 0.4, vx: 0, vy: 1.4 + Math.random(), vz: 0, c: [1, 0.6, 0.2], c2: [0.6, 0.05, 0], life: 0.6, s: 0.3, s2: 0.06, a: 0.9 });
       e.tick -= dt;
       if (e.tick <= 0) {
         e.tick = 0.25;
