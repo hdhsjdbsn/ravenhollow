@@ -747,6 +747,7 @@ function titleMenu() {
       else { popPanel(); newHero(); }
     }
   });
+  if (!/itch/i.test(location.hostname)) entries.push({ label: 'Skill test', fn: () => startSkillTest() });   // every skill at once, nothing saved; left out on itch.io
   entries.push({ label: 'Options', fn: () => openOptions() });
   entries.push({ label: 'Controls', fn: () => openControls() });
   entries.push({ label: 'Credits', fn: () => openCredits() });

@@ -479,3 +479,58 @@ function initVigil() {
   css.textContent = `.vtier{position:absolute;right:100%;width:170px;margin-right:-38px;top:206px;z-index:3;text-align:right;white-space:nowrap;font:600 12px var(--display,serif);letter-spacing:.18em;text-transform:uppercase;text-shadow:0 1px 0 #000,0 0 8px #000;pointer-events:auto}`;
   document.head.appendChild(css);
 }
+
+// =====================================================================================================================
+// Skill test (2026-11-16): a title-menu entry that drops a Penitent with every skill into the abbey, so all eight can be
+// seen without levelling. Health and lantern-fire do not run out, foes keep coming, nothing is saved and the real save
+// is left alone. T (keyboard) or d-pad right (controller) swaps between the first four skills and the last four.
+// =====================================================================================================================
+function startSkillTest() {
+  const H = new Hero('penitent', 'Penitent'); giveStartingGear(H);
+  for (const s of CLASS_SKILLS.penitent) H.skills[s] = 3;
+  H.lvl = 22; H.base.str += 25; H.base.vit += 40; H.base.mag += 20;
+  H.slots = CLASS_SKILLS.penitent.slice(0, 4);
+  closeAllPanels(); stopVoice();
+  if (Game.titleEl) { Game.titleEl.remove(); Game.titleEl = null; }
+  Game.camGoal = null; Game.skillTest = { set: 0, spawnT: 2 }; Game.seeds = {};
+  WORLD.hero = H; H.recalc(); H.hp = H.maxHp; H.mana = H.maxMana; WORLD.portalObj = null;
+  UI.hud.style.display = ''; Game.state = 'play';
+  UI.fadeTo(1, 10).then(async () => { stashLevel(); for (const k in Game.cache) delete Game.cache[k]; H.rebuildVisual(); await enterLevel(2, 'down'); UI.fadeTo(0, 1200); skillTestHint(); });
+}
+function skillTestHint() {
+  const T = Game.skillTest; if (!T) return;
+  const pad = IN.lastDevice === 'pad', names = WORLD.hero.slots.map(s => SKILLS[s].name).join(' · ');
+  UI.hint.style.transition = 'none'; UI.hint.style.opacity = 1;
+  UI.hint.innerHTML = `Skill test &nbsp;·&nbsp; ${pad ? 'D-pad right' : 'T'}: other four skills &nbsp;·&nbsp; ${pad ? glyph('menu') : 'Esc'} Menu`;
+  UI.msg(`Skills ${T.set * 4 + 1} to ${T.set * 4 + 4}: ${names}`, '#f0c070', true);
+}
+{
+  const _save = saveGame; saveGame = function () { if (Game.skillTest) return; _save(); };
+  const _title = showTitle; showTitle = async function () { Game.skillTest = null; return _title.apply(this, arguments); };
+  const _start = startGame; startGame = function () { Game.skillTest = null; return _start.apply(this, arguments); };
+  const _upd = update;
+  update = function (dt) {
+    const T = Game.skillTest, H = WORLD.hero;
+    if (T && H && Game.state === 'play' && !topPanel()) {
+      if ((pressed('right') && IN.lastDevice === 'pad') || (pressed('lt') && IN.lastDevice !== 'pad')) {
+        IN.cur.right = false; IN.cur.lt = false;   // swallowed, so no portal is asked for; a held key then reads as pressed every frame, hence the frame check
+        if (G.frame - (T.last || -9) > 2) { T.set = 1 - T.set; H.slots = CLASS_SKILLS.penitent.slice(T.set * 4, T.set * 4 + 4); SFX.play('menuMove'); skillTestHint(); }
+        T.last = G.frame;
+      }
+      H.hp = H.maxHp; H.mana = H.maxMana; H.alive = true;
+      // keep a crowd at hand
+      T.spawnT -= dt;
+      if (T.spawnT <= 0 && WORLD.depth > 0) {
+        T.spawnT = 1.5;
+        const near = WORLD.monsters.filter(m => m.alive && m.dist(H) < 9).length, tab = monsterTable(WORLD.depth);
+        for (let n = near; n < 6 && tab.length; n++) for (let k = 0; k < 30; k++) {
+          const a = Math.random() * TAU, d = 3.5 + Math.random() * 3, x = H.x + Math.cos(a) * d, z = H.z + Math.sin(a) * d;
+          if (!canStand(x, z, 0.5) || !hasLOS(WORLD.level, H.x, H.z, x, z)) continue;
+          const m = new Monster(tab[(Math.random() * tab.length) | 0].type, WORLD.depth); m.x = x; m.z = z; m.rot = Math.random() * TAU; m.hp = m.maxHp = m.maxHp * 2; m.aggro = true; m.syncVisual(); WORLD.monsters.push(m);
+          fxSmoke(x, 0.5, z, 5); break;
+        }
+      }
+    }
+    _upd(dt);
+  };
+}
